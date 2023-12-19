@@ -1,0 +1,173 @@
+function MOD_value,value
+value=value+1
+value=value-2*(value/2)
+return,value
+end
+
+
+pro DRAWPLOT,OPLOT=oplot
+COMMON Wbase,base_plot
+COMMON SET_widget,BUTTONS
+
+!P.multi=[0,1]
+plot,[0,1],[0,1]
+
+END
+
+
+
+
+Pro Stoks_analyz_event, event
+COMMON Wbase,base_plot
+COMMON SET_widget,BUTTONS
+COMMON FILES,LOG_dir,LOGFILE,pro_dir,wdir
+COMMON IMA,stoks_in,stoks_out,xrng,wx,err,plot_ind,sent_ind,atm_ind,ps,ind
+; When a widget is selected, put its User Value into 'eventval':
+
+;
+;IF (event.select EQ 1) THEN PRINT, event.value, ' selected.' $
+;ELSE PRINT, event.value, ' de-selected.'
+; Perform actions based on the User Value of the event:
+WIDGET_CONTROL, event.id, GET_UVALUE = eventval
+;print,event.value
+CASE eventval OF
+;print,eventval
+
+
+'set_path':   BEGIN
+  			log_dir=DIALOG_PICKFILE(PATH='h:\red_data.pol',/DIRECTORY)
+  			WIDGET_CONTROL, BUTTONS(1), SET_VALUE=log_dir
+  			end
+'LOG_input':BEGIN
+   		    CD,log_dir+'LOGS\',CURRENT=pro_dir
+   			filename=pickfile(/read,filter='*.txt')
+   			CD,pro_dir
+			LOGFILE=filename
+   			print,logfile
+  			name_out=FILE_BASENAME(filename)
+  			WIDGET_CONTROL, BUTTONS(2), SET_VALUE=name_out
+			wdir=str_sep(sxpar(read_table(LOGFILE),'w_dir'),'\')
+			wdir=log_dir+wdir(N_elements(wdir)-2)+'\'
+			;mode analyzer
+			ANALYZER=sxpar(read_table(LOGFILE),'ANALYZER')
+			WIDGET_CONTROL, BUTTONS(3), SET_VALUE='ANALYZER '+ANALYZER
+			;spectral coverage
+			if   FILE_TEST(wdir+ 'stoks.fit') eq 1 then begin
+			stoks_in=readfits(wdir+'stoks.fit',head)
+			Nx=sxpar(head,'NAXIS1')
+			lambda=findgen(Nx)*sxpar(head,'CDELT1')+sxpar(head,'CRVAL1')
+			WIDGET_CONTROL, BUTTONS(4), SET_VALUE=string(min(lambda),format='(I5)')+$
+				'-'+string(max(lambda),format='(I4)')+' AA   '+$
+				string(sxpar(head,'CDELT1'),format='(F4.1)')+'  A/px'
+
+			ENDIF  ELSE Result = DIALOG_MESSAGE('No file STOKS.FIT!')
+
+            ;for j=0,1do WIDGET_CONTROL,BUTTONS(J),SENSITIVE=1
+  			;if   FILE_TEST(wdir+ 'eta_i.fts') eq 1 and FILE_TEST(wdir+'neon_i.fts')$
+  			;and  FILE_TEST(wdir+'flat_i.fts') eq 1 and FILE_TEST(wdir+'obj_i.fts')$
+  			;then WIDGET_CONTROL,BUTTONS(3),SENSITIVE=0 $
+  		;	;ELSE WIDGET_CONTROL,BUTTONS(3),SENSITIVE=1
+   			end
+'beg_wave':	begin
+        	WIDGET_CONTROL,event.id,GET_VALUE=T
+        	xrng(0)=FLOAT(T(0))
+        	end
+'end_wave':	begin
+        	WIDGET_CONTROL,event.id,GET_VALUE=T
+        	xrng(1)=FLOAT(T(0))
+        	end
+'box':		begin
+        	WIDGET_CONTROL,event.id,GET_VALUE=T
+        	wx =FLOAT(T(0))
+       		end
+'menu':		begin
+			print,event.value,event.select
+			end
+'DONE': 	WIDGET_CONTROL, event.top, /DESTROY
+ENDCASE
+
+
+
+
+END
+
+
+
+PRO Stoks_analyz, GROUP=GROUP
+COMMON Wbase,base_plot
+COMMON SET_widget,BUTTONS
+COMMON FILES,LOG_dir,LOGFILE,pro_dir,wdir
+COMMON IMA,stoks_in,stoks_out,xrng,wx,err,plot_ind,sent_ind,atm_ind,ps,ind
+;initial parameters
+
+Log_dir='h:\red_data.pol\TINATIN\'
+pro_dir='h:\WOLLASTON-2.lib\'
+xrng=[4000,7200] & wx=5
+!p.multi=[0,1,1]
+s_win = !D.WINDOW	; Remember the current window so it can be restored
+;sw_gau=0
+;xs=0 & ys=0
+;x_pre=1 & y_pre=1
+
+;x_min=0 & y_min=0 & x_max=1 & y_max=1
+; This example uses keywords to define the size of the draw area:
+base_plot = WIDGET_BASE(TITLE = 'PLOT POLARIZATION PROPERTIES',/ROW,xoffset=0,yoffset=0)
+
+WIDGET_CONTROL, /MANAGED, base_plot
+
+
+;
+draw_plot = WIDGET_DRAW(base_plot , XSIZE=700, YSIZE=900,/FRAME);, $
+	;/MOTION_EVENTS,  /BUTTON_EVENTS ,$		;generate LOTS of events
+	;UVALUE = 'DRAW_EVENT', 	RETAIN = 2)
+
+base_par=WIDGET_BASE(base_plot,/col,xsize=170,ysize=30)
+;set PATH
+BUT_PATH=WIDGET_BUTTON(base_par,value='SET PATH',uvalue='set_PATH')
+text_PATH=WIDGET_TEXT(BASE_par,value=log_dir,XSIZE=25,/align_center,/frame)
+;OPEN LOGFILE
+BUT_LOG=WIDGET_BUTTON(BASE_par,VALUE='OPEN LOGFILE',uvalue='LOG_input')
+text_LOG=WIDGET_TEXT(base_par, XSIZE=25,/align_center)
+;INFO ANALYZER
+info_POL=WIDGET_LABEL(base_par,value='   ',xsize=160,/align_center,/frame)
+INFO=WIDGET_LABEL(base_par,value='INIT SPECTRAL COVERAGE:',xsize=170,/align_center)
+info_WAVE=WIDGET_LABEL(base_par,value='   ',xsize=160,/align_center,/frame)
+INFO=WIDGET_LABEL(base_par,value='NEW SPECTRAL COVERAGE:',xsize=170,/align_center)
+;new spectral coverage
+base_wave=WIDGET_BASE(base_par,/row,xsize=170)
+
+beg_wave=WIDGET_TEXT(base_wave,VALUE=string(xrng(0),format='(I4)'),uvalue='beg_wave',/edit,/all,/align_center,xsize=4)
+INFO=WIDGET_LABEL(base_wave,value='- ',/align_center)
+end_wave=WIDGET_TEXT(base_wave,VALUE=string(xrng(1),format='(I4)'),uvalue='end_wave',/edit,/all,/align_center,xsize=4)
+INFO=WIDGET_LABEL(base_wave,value='AA,  box',/align_center)
+box= WIDGET_TEXT(base_wave,VALUE=string(wx,format='(I2)'),uvalue='box',/edit,/all,/align_center,xsize=2)
+INFO=WIDGET_LABEL(base_wave,value='px',/align_center)
+INFO=WIDGET_LABEL(base_par,value='OPTIONS OF THE OUTPUT PLOT',/align_center,/frame,xsize=160)
+
+items = ['total flux','polarized flux','Q-Stoks parameter','U-Stoks parameter','V-Stoks parameter ','degree of polarization','angle of polarization plane']
+for k=0,6 do $
+menu = CW_BGROUP(base_par, items(k), /NONEXCLUSIVE,uvalue='menu', IDS = button, /RETURN_NAME)
+;values=WIDGET_LABEL(base_inform,value=' ',xsize=465)
+button = WIDGET_BUTTON(base_par , $
+		UVALUE = 'DONE', $
+		VALUE = 'DONE')
+
+ 		;    0          1           2       3        4        5        6       7
+BUTTONS=[ draw_plot , text_PATH,text_LOG,info_POL,info_WAVE];edit_LOG,Yshift,BUT_DEL_FTS,BUT_CREATE_datacube,BUT_BINX,BUT_BINY,BUT_Neta,BUT_VIEW];,$
+        ;   8       9          10       11     12  13  14   15     16     17       18     19      20	21		22
+		;BUT_RUN,BUT_DEFAULT,BUT_LOAD,BUT_SAVE,Xbeg,wx,Ntra,DegTra,comp,label_pos,obj_pos,label_w,obj_w,radiusX,radiusY,$
+		;    23      24            25                26        27       28
+		;shiftPA_W,out_beg_wave_W,out_end_wave_W,width_integr];,P_ISM_W,PA_ISM_W]
+
+WIDGET_CONTROL, base_plot , /REALIZE
+
+
+
+WIDGET_CONTROL, draw_plot, GET_VALUE=num_win
+
+
+DRAWPLOT
+; Hand off control of the widget to the XMANAGER:
+XMANAGER, "Stoks_analyz", base_plot , GROUP_LEADER=GROUP, /NO_BLOCK
+
+END

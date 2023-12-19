@@ -1,0 +1,11 @@
+
+7-Zip [64] 9.20  Copyright (c) 1999-2010 Igor Pavlov  2010-11-18
+
+Processing archive: H:\obs_data.pol\s151106\s134702.zip
+
+Extracting  s13470211.fts
+
+Everything is Ok
+
+Size:       9627840
+Compressed: 42636749

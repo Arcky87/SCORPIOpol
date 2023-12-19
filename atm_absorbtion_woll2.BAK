@@ -1,0 +1,87 @@
+pro atm_absorbtion_WOLL2,LOGFILE,LINE=line,REGION=region,STAR=star
+;line   	длина волны абсорбции
+;region		ширина интервала проведения сонтинуума
+tmp=str_sep(LOGFILE,'\')
+path=tmp(0)
+for j=1,N_elements(tmp)-3 do begin
+path=path+'\'+tmp(j)
+endfor
+path=path+'\'
+dir=str_sep(sxpar(read_table(LOGFILE),'w_dir'),'\')
+dir=path+dir(N_elements(dir)-2)+'\'
+
+
+
+
+Nline=N_elements(line)
+spectra=readfits(dir+'spectra.fit',h)
+Nx=sxpar(h,'NAXIS1')  & Npol=sxpar(h,'NAXIS2')  & Ncube= sxpar(h,'NAXIS4')
+Nexp=fltarr(Ncube)
+for k=0,Ncube-1 do Nexp(k)=sxpar(h,'NUMEXP'+string(k+1,format='(I1)'))
+print,Nexp
+lambda_0= sxpar(h,'CRVAL1')  & d_lambda= sxpar(h,'CDELT1')
+lambda=findgen(Nx)*d_lambda+lambda_0
+pos_line=(line-lambda_0)/d_lambda
+pos_reg=region/d_lambda/2
+window,2,xsize=1000,ysize=500
+!P.multi=[0,1,1]
+plot,lambda,spectra(*,0,0,1),xst=1
+
+window,3
+!P.multi=[0,1,3]
+j=star
+P=3
+atm_abs=fltarr(Nx,Npol)+1
+spectra_atm=fltarr(2*pos_reg+1,Nline)
+spectra_reg=fltarr(2*pos_reg+1,Nexp(j))
+for p=0,Npol-1 do begin
+for k=0,Nline-1 do begin
+plot,[0,2*pos_reg],[0,1.2],xst=1,yst=1,/nodata
+for i=0,Nexp(j)-1 do begin
+spectra_reg(*,i)=spectra(pos_line(k)-pos_reg:pos_line(k)+pos_reg,p,i,j)
+xpos=findgen(2*pos_reg+1)
+cont=LOWESS(xpos,spectra_reg(*,i),2*pos_reg,2,1)
+;определение области проведения континуума
+robomean,cont-spectra_reg(*,i),1,0.5,avg_S,rms_S
+R=where(cont-spectra_reg(*,i) lt rms_S)
+f=goodpoly(xpos(R),spectra_reg(R,i),1,2)
+cont=f(0)+f(1)*xpos
+spectra_reg(*,i)=spectra_reg(*,i)/cont
+oplot,xpos,spectra_reg(*,i)
+endfor
+;spectra_atm(*,k)=total(spectra_reg,2)/Nexp(j)
+for i=0,2*pos_reg do spectra_atm(i,k)=median(spectra_reg(i,*))
+R=where(spectra_atm(*,k) gt 1.01,ind) & if ind gt 1 then spectra_atm(R,k)=1;.02
+;spectra_atm(*,k)=spectra_atm(*,k)-0.02
+oplot,xpos,spectra_atm(*,k)-0.2
+oplot,[0,2*pos_reg],[1,1]*0.8,linestyle=2
+endfor
+
+;формирование выходного спектра
+
+for k=0,Nline-1 do atm_abs(pos_line(k)-pos_reg:pos_line(k)+pos_reg,p)= spectra_atm(*,k)
+endfor
+!P.multi=[0,1,1]
+S=0
+window,4,xsize=1000,ysize=1000
+!P.multi=[0,1,4]
+;for x=0,Nx-1 do atm_abs(x)=median(atm_abs(x,*))
+;atm_abs=total(atm_abs,2)/4
+for p=0,Npol-1 do begin
+plot,lambda,atm_abs-1,xst=1,yrange=[-1,2],yst=1,xrange=[5500,7200],charsize=2
+oplot,lambda,spectra(*,P,0,S)/max(spectra(*,p,0,S))
+oplot,lambda,spectra(*,P,0,S)/max(spectra(*,p,0,S))/atm_abs,color=1e5
+oplot,lambda,spectra(*,P,0,S)/max(spectra(*,p,0,S))/atm_abs(*,p),color=1e5
+endfor
+;atm_abs=total(atm_abs,2)/4.0
+writefits,dir+'atm_abs.fit',atm_abs,h
+
+end
+
+;LOGFILE=DIALOG_PICKFILE(/read,path='h:\red_data.pol\AGN\LOGS\',FILTER='*.txt')
+LOGFILE=DIALOG_PICKFILE(/read,path='h:\red_data.pol\LOGS\',FILTER='*.txt')
+;LOGFILE='h:\red_data.pol\LOGS\3C390_140324.txt\
+;atm_absorbtion_WOLL2,LOGFILE,LINE=[6890,7200],region=300,STAR=1
+atm_absorbtion_WOLL2,LOGFILE,LINE=[6260,6260,6890],region=200,STAR=1
+END
+
