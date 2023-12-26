@@ -1,4 +1,4 @@
-PATH=!PATH+':'+'/data6/SCORPIO/sppol_pipeline_v2023.8/WOLLASTON-2.lib/'
+PATH=!PATH+':'+'/home/elias/SCORPIO/sppol_pipeline_v2023.8/WOLLASTON-2.lib/'
 .compile OPLOTERR.PRO
 ;.compile sxpar.pro
 ;.compile shift_s.pro

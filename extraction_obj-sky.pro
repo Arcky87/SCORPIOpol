@@ -15,7 +15,7 @@ return,vector
 end
 
 
-dir='/data6/SCORPIO/sppol_pipeline_v2023.8/Mrk1018/'
+dir='/home/elias/SCORPIO/sppol_pipeline_v2023.8/Mrk1018/'
 cube=readfits(dir+'obj-sky.fts',h)
 biny=1.0
 apert=[10.0,10.0,10.0];in arcsec [5.0,5.0,5.0]

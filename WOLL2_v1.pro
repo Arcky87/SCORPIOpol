@@ -592,7 +592,7 @@ PRO WOLL2 ; MAIN WIDGETS-INTERFACE
    COMMON STOKS,shift_PA,out_end,out_beg,W_integr,P_ISM,PA_ISM
 ; set init parameters
 ;******************************************************
-			log_dir='/data6/SCORPIO/sppol_pipeline_v2023.8/'
+			log_dir='/home/elias/SCORPIO/sppol_pipeline_v2023.8/'
 ;*****************************************************
 background=2^24-1 & color=0
 Y_shi=0  & NSdeg=2 & NScut=3 & atm_lines='6890,7260,7620' & atm_window=300

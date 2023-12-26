@@ -1,5 +1,5 @@
 objdir='Mrk1018'
-dir='/data6/SCORPIO/sppol_pipeline_v2023.8/'+objdir+'/'
+dir='/home/elias/SCORPIO/sppol_pipeline_v2023.8/'+objdir+'/'
 h=headfits(dir+'avg_spectra.fit')
 Nx=sxpar(h,'NAXIS1')
 lam=indgen(Nx)*sxpar(h,'CDELT1')+sxpar(h,'CRVAL1')
