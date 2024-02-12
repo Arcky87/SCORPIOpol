@@ -12,7 +12,7 @@ cube=readfits(dir+'neon.fts',h)
 a=size(cube) & Nx=a(1)  & Ns=a(3)
 spectra=fltarr(Nx,Ns)
 x=findgen(Nx)
-G=0.5
+G=0.25
 for j=0,Ns-1 do begin
 spectra(*,j)=total(cube(*,*,j),2)
 R=where(spectra(*,j) lt 1,ind1) & if ind1 gt 1 then spectra(R,j)=1
@@ -102,7 +102,7 @@ log_dir='h:\red_data.pol\'
 LOGFILE=DIALOG_PICKFILE(/read,path=log_dir+'LOGS\',FILTER='*.txt')
 ;LOGFILE=DIALOG_PICKFILE(/read,path='h:\red_data.pol\LOGS\',FILTER='*.txt')
 wdir=str_sep(sxpar(read_table(LOGFILE),'w_dir'),'\')
-				wdir=log_dir+wdir(N_elements(wdir)-2)+'\'
-				print,wdir
+    wdir=log_dir+wdir(N_elements(wdir)-2)+'\'
+    print,wdir
 create_etalon_WOLL2,wdir
 end

@@ -1,0 +1,6 @@
+{
+    "idl.code.formatting": {
+        "styleAndFormat": false
+    },
+    "idl.problems.includeProblemsFromIDLPath": false
+}

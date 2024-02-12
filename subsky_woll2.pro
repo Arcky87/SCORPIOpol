@@ -30,8 +30,8 @@ titl=['object','unpolarized star','polarized star']
 p=0
 if keyword_set(plot) then p=1
  for j=0,Ncube-1 do begin
-	for i=0,Nexp(j)-1 do begin
-y=findgen(Ny)  & w=30/2.0   ;!!! default w=10/2.0
+ for i=0,Nexp(j)-1 do begin
+y=findgen(Ny)  & w=10/2.0   ;!!! default w=10/2.0
 
 a=[0,500,50,4]
 if p eq 1 then Window,3,xsize=100+a(1)*2 ,ysize=(a(2)+1)*a(3)*co,title=dir+',    '+titl(j)+',   exposure'+string(i+1)
@@ -51,9 +51,9 @@ oplot,V(R),y(R),psym=6,symsize=0.25,color=1e5
 endif
 for x=0,Nx-1 do begin
 f=goodpoly(y(R),map(x,R),NSdeg,1,Yfit)
-	if k+i+j eq 0 then begin
-		if (x gt 1500 and x lt 1550) then print, 'coef', f
-	endif
+ if k+i+j eq 0 then begin
+  if (x gt 1500 and x lt 1550) then print, 'coef', f
+ endif
 sky=0 & for s=0,NSdeg do sky=sky+f(s)*y^s
 map(x,*)=map(x,*)-sky
 cube(x,*,k,i,j)=map(x,*)
@@ -71,21 +71,21 @@ endfor
 
 ;print,'subsky ',titl(j)+',   exposure'+string(i+1),NSdeg
 ;wait,0.1
-	endfor
+ endfor
 endfor
 
 ;коррекция кривизны ниток и смещение к центру
 if keyword_set(yshift) then begin
-		for t=0,Ncube-1 do begin
-	for e=0,Nexp(t)-1 do begin
+  for t=0,Ncube-1 do begin
+ for e=0,Nexp(t)-1 do begin
 for p=0,Npol-1 do begin
 ;ma=obj_cube(*,*,p,e,t)
 cube(*,*,p,e,t)=corr_tra(cube(*,*,p,e,t),Ndeg=1,win=200)
 cube(*,*,p,e,t)=corr_tra(cube(*,*,p,e,t),/plot,Ndeg=2,win=200)
 wait,0.1
 endfor
-	endfor
-		endfor
+ endfor
+  endfor
 endif
 
 if keyword_set(flat) then sxaddhist,'flat-field corrected',h
