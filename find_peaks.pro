@@ -17,20 +17,20 @@ fi_peak,y,vector,avg_y+rms_y*tresh,ipix,xpk,ypk,bkpk,ipk
 ;find exact position of peak
 R=where(xpk gt w/2 and xpk lt Ny-1-w/2,ind);(xpk gt 0 and xpk lt Ny-1-w/2,ind) ;(xpk gt w/2 and xpk lt Ny-1-w/2,ind)
 if ind gt 1 then begin
-	xpk=xpk(R)
-		for j=0,ind-1 do begin
-			f=goodpoly(y(xpk(j)-w/2:xpk(j)+w/2),vector(xpk(j)-w/2:xpk(j)+w/2),2,3)
-			xpk(j)=-f(1)/f(2)/2
-		endfor
+ xpk=xpk(R)
+  for j=0,ind-1 do begin
+   f=goodpoly(y(xpk(j)-w/2:xpk(j)+w/2),vector(xpk(j)-w/2:xpk(j)+w/2),2,3)
+   xpk(j)=-f(1)/f(2)/2
+  endfor
 endif
 
 if keyword_set(plot) then begin
-	cgdisplay,wid=2
-	!p.multi=[0,1,1]
-	cgplot,y,vector, xst=1
-	cgoplot,[0,Ny],[1,1]*rms_y*tresh,color='red'
-	cgoplot,xpk,ypk,psym=16
-	wait, 5.0
+ cgdisplay,wid=2
+ !p.multi=[0,1,1]
+ cgplot,y,vector, xst=1
+ cgoplot,[0,Ny],[1,1]*rms_y*tresh,color='red'
+ cgoplot,xpk,ypk,psym=16
+; wait, 0.5
 endif
 
 return,xpk

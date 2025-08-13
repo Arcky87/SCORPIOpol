@@ -5,7 +5,6 @@ w=20 ; default = 20
 vector=total(eta(a(1)/2-w:a(1)/2+w,*),1)/(2*w+1)
 R=where(vector lt 0,ind) & if ind gt 0 then vector(R)=0
 xpk=find_peaks(vector,W=20,TRESH=5,/plot)  ;20 100
-print, 'xpk: ', xpk
 tmp=reform(xpk,3,4) & yc=fltarr(4)  & yc(*)=tmp(1,*)
 return,yc
 end

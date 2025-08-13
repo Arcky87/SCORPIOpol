@@ -38,7 +38,7 @@ function read_cube_WOLL2,wdir,cubename,filename,head
 ;       Written by Victor Afanasiev, Special Astrophysical Observatory RAS, mar, 2014
 
 ;SPAWN,'7z.exe x '+wdir+' '+cubename+' '+filename,/hide
-SPAWN, '/home/elias/bin/7zzs x '+wdir+cubename+' '+filename + ' -o'+wdir;,/hide
+SPAWN, '/home/elias/bin/7zzs x '+wdir+cubename+' '+filename + ' -o'+wdir+'> null';,/hide
 
 RES=READFITS(wdir+filename,head,/silent)
 

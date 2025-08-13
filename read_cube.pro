@@ -39,7 +39,7 @@ function read_cube,wdir,cubename,filename,head
 
 ;SPAWN,'C:\Users\username\7-Zip\7z.exe x '+wdir+' '+cubename+' '+filename,/hide
 ;SPAWN, wdir+'7z.exe x '+wdir+' '+cubename+' '+filename,/hide
-SPAWN, '7zzs x '+wdir+cubename+' '+filename + ' -o'+wdir;,/hide
+SPAWN, '7zzs x '+wdir+cubename+' '+filename + ' -o'+wdir+' > null';,/hide
 
 RES=READFITS(wdir+filename,head);,/silent)
 
