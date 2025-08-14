@@ -11,13 +11,15 @@ pro geometry_WOLL2,neon,tra,DY=dy,X0,Y0,X1,Y1,SCALE=scale,TRESH=tresh,EPS=eps,PL
 
 a=size(neon) & Nx=a(1) & Ny=a(2)
 if not(keyword_set(scale)) then scale=2
-if not(keyword_set(tresh)) then tresh=2
-if not(keyword_set(eps)) then eps=20
+if not(keyword_set(tresh)) then tresh=10
+if not(keyword_set(eps)) then eps=40
 if not(keyword_set(dy)) then dy=10
 if keyword_set(plot) then P=1 else P=0
+;”величиваем число траекторий по высоте щели
 tra=expand_traectory(tra,SCALE=scale)
 if keyword_set(TITLE) then titl=title ELSE titl=''
 b=size(tra) & Ntra=b(2)
+
 create_repers_WOLL2,neon,tra,xrep,yrep,TRESH=tresh,EPS=eps,plot=P,TITL=titl
 
 a=size(xrep) & Nrep=a(2)
@@ -92,15 +94,15 @@ high(i)=ff(0)+ff(1)*(tra(Nx/2,Ntra-1)+dy)
 endfor
 tra_low=0 & for i=0,2 do tra_low=tra_low+low(i)*x^i
 tra_high=0 & for i=0,2 do tra_high=tra_high+high(i)*x^i
-	oplot,x,tra_low,linestyle=2,color=3e6
-	oplot,x,tra_high,linestyle=2,color=3e6
-		tmp=fltarr(Nx,Ntra+2)
-		tmp(*,0)=tra_low
-		tmp(*,1:Ntra)=tra
-		tmp(*,Ntra+1)=tra_high
-		tra=tmp & Ntra=Ntra+2
+ oplot,x,tra_low,linestyle=2,color=3e6
+ oplot,x,tra_high,linestyle=2,color=3e6
+  tmp=fltarr(Nx,Ntra+2)
+  tmp(*,0)=tra_low
+  tmp(*,1:Ntra)=tra
+  tmp(*,Ntra+1)=tra_high
+  tra=tmp & Ntra=Ntra+2
 ;экстрапол€ци€ траекторий и линий за кра€ формата
-ext=70  ;50  - 2x1
+ext=50  ;50  - 2x1
 xx=findgen(Nx+2*ext)-ext
 yy=findgen(Ny+2*ext)-ext
 line_ext=fltarr(Ny+2*ext,Nlin)
@@ -112,7 +114,7 @@ for k=0,Ntra-1 do tra_ext(*,k)=INTERPOL( tra(*,k),x,xx)
 x1=fltarr(Ntra,Nlin) & y1=x1
 for i=0,Nlin-1 do begin
 for j=0,Ntra-1 do begin
-pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),10,/plot) ; default W = 5 IY
+pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),5,/plot) ; default W = 5 IY
 R=where(pos lt 0,ind) & if ind gt 1 then print,'negative value',i,j
 x1(j,i)=pos(0) & y1(j,i)=pos(1)
 endfor

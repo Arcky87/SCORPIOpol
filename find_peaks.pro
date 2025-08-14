@@ -10,7 +10,7 @@ vector=vector;-LOWESS(y,vector,Ny/4,2)
 
 ;estimation of the tresh level
 robomean,vector,3,0.5,avg_y,rms_y & print, avg_y
-rms_y=50 ;!!!!
+rms_y=45 ;!!!!
 fi_peak,y,vector,avg_y+rms_y*tresh,ipix,xpk,ypk,bkpk,ipk
 ;print, '!!!', xpk
 
@@ -30,7 +30,7 @@ if keyword_set(plot) then begin
  cgplot,y,vector, xst=1
  cgoplot,[0,Ny],[1,1]*rms_y*tresh,color='red'
  cgoplot,xpk,ypk,psym=16
-; wait, 0.5
+ wait, 0.5
 endif
 
 return,xpk

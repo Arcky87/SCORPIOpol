@@ -11,7 +11,7 @@ tra=findgen(a(1),Ntra,a(3))
 Npos=FIX(a(1)/wx)-1;-3
 
 dNpos=Xbeg/wx
-Window,0,xsize=800,ysize=400
+Window,0,xsize=1600,ysize=600
 !P.multi=[0,1,1]
 FOR J=0,a(3)-1 DO BEGIN
 xpos=findgen(Npos)*wx+wx/2
@@ -37,7 +37,7 @@ for i=0,2 do tmp(i)=peak_position(Vy(Npos/2-k,*),tmp(i),5)
 ypos(Npos/2-k,*)=tmp
 endfor
 plot,[0,a(1)-1],[1,a(2)-1],/nodata,xst=1,yst=1,position=[0.05,0.07+0.23*j,0.85,0.07+0.23*(j+1)],/norm,$
-	noerase=j,xcharsize=xcrsz(j),ytickinterval=50
+ noerase=j,xcharsize=xcrsz(j),ytickinterval=50
 x=findgen(a(1))
 for k=0,2 do begin
 oplot,xpos(dNpos:Npos-1),ypos(dNpos:Npos-1,k),psym=6,symsize=0.5
