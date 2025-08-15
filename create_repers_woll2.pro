@@ -29,13 +29,13 @@ for k=0,Ntra-1 do begin
  ;vector = median(vector, 3) ; эксперименты !!!!!
  ;vector=ALOG10(vector)
  ;Ищем линии на пути каждой траектории, записываем в xpk
- xpk=find_peaks(vector,tresh=10,w=9); can be plotted via /plot
+ xpk=find_peaks(vector,tresh=2,w=5); can be plotted via /plot
  ;Отбрасываем пики с краю кадра по значениям wx  
  RR=where(xpk gt wx*2 and xpk lt Nx-1 -2*wx) & xpk=xpk(RR)
  Npk(k)=N_elements(xpk)
   ;аппроксимация пиков полиномом для поиска точного положения. В текущей реализации параболой
   for j=0,Npk(k)-1 do begin
-   P=goodpoly(x(xpk(j)-wx:xpk(j)+wx),vector(xpk(j)-wx:xpk(j)+wx),2,2,fit) ; 2,2 ---default IY
+   P=goodpoly(x(xpk(j)-wx:xpk(j)+wx),vector(xpk(j)-wx:xpk(j)+wx),2,3,fit) ; 2,2 ---default IY
    xpk(j)=-P(1)/P(2)/2
    ;эксперименты
   ;  peak_val = P(0) - P(1)^2/(4*P(2)) ; Максимум параболы
@@ -79,9 +79,9 @@ xrep=reform(xrep,Ntra,Nline)
 yrep=reform(yrep,Ntra,Nline)
 index=intarr(Nline)
 for k=0,Nline-1 do begin
- f=goodpoly(yrep(*,k),xrep(*,k),1,2,Xfit) ; default 1,3 IY
+ f=goodpoly(yrep(*,k),xrep(*,k),1,5,Xfit) ; default 1,3 IY
  err=stdev(xrep(*,k)-Xfit)
- if err lt 0.55 then begin
+ if err lt 0.75 then begin
   if keyword_set(plot) then oplot,xrep(*,k),yrep(*,k),color=258,psym=6,thick=2
   index(k)=1
   endif

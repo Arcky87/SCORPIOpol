@@ -686,7 +686,7 @@ x_beg=100 & w_x=40 & N_tra=12 & Deg_Tra=3
   endif
 if k eq 2 then begin
   bgroup = cw_bgroup(base_1, 'plot',/nonEXCLUSIVE,uvalue='k2',set_value=key1(k))
-D_y=40 & wg_x=30 & wg_y=20 & TRESH=1
+D_y=15 & wg_x=30 & wg_y=20 & TRESH=1
  LABEL=widget_label(base_1,value=' Expand at Y ',/align_center)
  dY=WIDGET_TEXT(BASE_1,VALUE='40',uvalue='Dy',/edit,/all,/align_center,xsize=6)
  LABEL=widget_label(base_1,value=' Window at X ',/align_center)

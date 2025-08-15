@@ -23,41 +23,27 @@ b=size(tra) & Ntra=b(2)
 create_repers_WOLL2,neon,tra,xrep,yrep,TRESH=tresh,EPS=eps,plot=P,TITL=titl
 
 a=size(xrep) & Nrep=a(2)
-SY=640 & SX=1972
+SY=640 & SX=1900
 
-if P eq 1 then window,2,xsize=SX,ysize=SY,ypos=1020+SY+40,xpos=0,title='approximation curvature of lines' +titl,retain=2
+if P eq 1 then window,2,xsize=SX,ysize=SY,ypos=620+(SY+40),xpos=0,title='approximation curvature of lines' +titl,retain=2
 !P.multi=[0,1,1]
-map=ALOG10(neon+1000);
 map=neon
 ;robomean,congrid(map,Nx/10,Ny/10),3,0.5,mean,rms
+; 255-bytscl(ALOG10(congrid(neon,SX,SY)),1,3)
 if P eq 1 then  begin
-tv,255-bytscl(congrid(map,SX,SY),-10,1000);mean-5*rms,mean+rms*50)
+tv,255-bytscl(ALOG10(congrid(map,SX,SY)),1,3);mean-5*rms,mean+rms*50)
 plot,[0,Nx-1],[0,Ny-1],xs=1,yst=1,/nodata,position=[0,0,1,1],/noerase
 for k=0,Ntra-1 do oplot,tra(*,k)
-oplot,xrep,yrep,psym=6,symsize=0.5
+oplot,xrep,yrep,psym=6,symsize=0.5,thick=2
 endif
 ;построение модели геометрии
-Ndeg=2
-
-;print,'Nrep=',Nrep
-;index_rep=fltarr(Nrep)
-;for j=0,Nrep-1 do begin
-;R=where(yrep(*,j) eq 0 OR xrep(*,j) eq 0,ind)
-;if ind gt 0 then index_rep(j)=1
-;
-;endfor
-;print,index_rep
-;RR=where(index_rep(k) ne 1,ind) & xrep=xrep(*,RR) & yrep=yrep(*,RR)
-;print,size(x_rep)
-xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2
-print,'Nrep=',Nrep
+Ndeg=2 ; степень полинома аппроксимаци линий вдоль щели
+; убираем реперы крайних линий (самую синюю и самую красную) ”брал 
+;xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2
 ff=fltarr(Ndeg+1,Nrep)
-;for k=0,Nrep-1 do print,k,yrep(*,k),xrep(*,k),format='(I5,10F10.3)'
+;аппроксимируем линии полиномом Ndeg
 for k=0,Nrep-1 do begin
-
 ff(*,k)=goodpoly(yrep(*,k),xrep(*,k),Ndeg,3,Xfit) ; 3 --- default IY
-
-print,'line=',k,stdev(xrep(*,k)-Xfit)
 endfor
 ;аппроксимаци€ коеффициентов наклона и кривизны линий
 ap=fltarr(3,Ndeg+1)
@@ -73,16 +59,20 @@ fit=0 & for i=0,Ndeg do fit=fit+ff(i,k)*y^i
 line(*,k)=fit
 endfor
 ;добавление линий на кра€х
-d_tmp=50
+d_tmp=10 ;отступ пикселей от левого кра€ экрана
 tmp=fltarr(Ny,Nrep+2)
-tmp(*,0)=ap(0,1)*y+ap(0,2)*y^2+20
+tmp(*,0)=ap(0,1)*y+ap(0,2)*y^2+d_tmp
 tmp(*,Nrep+1)=line(*,Nrep-1)+(Nx-3-max(line(*,Nrep-1)))
 tmp(*,1:Nrep)=line(*,*)
 line=tmp & Nlin=Nrep+2
-for k=0,Nlin-1 do oplot,line(*,k),y,color=3e6
+; »сходные линии 
+;for k=1,Nlin-1 do oplot,line(*,k),y,color=3e6 ; 
+; Ћева€ граница - красный
+;oplot,line(*,0),y,color=255,thick=2 
+; ѕрава€ граница - синий  
+;oplot,line(*,Nlin-1),y,color=255,thick=2
 ;двумерна€ аппроксимаци€ траекторий
-
-coeff_tra=fltarr(3,Ntra)  & x=findgen(Nx)
+coeff_tra=fltarr(3,Ntra) & x=findgen(Nx)
 for i=0,Ntra-1 do begin
 coeff_tra(*,i)=goodpoly(x,tra(*,i),2,3,Yfit)
 endfor
@@ -94,29 +84,36 @@ high(i)=ff(0)+ff(1)*(tra(Nx/2,Ntra-1)+dy)
 endfor
 tra_low=0 & for i=0,2 do tra_low=tra_low+low(i)*x^i
 tra_high=0 & for i=0,2 do tra_high=tra_high+high(i)*x^i
- oplot,x,tra_low,linestyle=2,color=3e6
- oplot,x,tra_high,linestyle=2,color=3e6
-  tmp=fltarr(Nx,Ntra+2)
-  tmp(*,0)=tra_low
-  tmp(*,1:Ntra)=tra
-  tmp(*,Ntra+1)=tra_high
-  tra=tmp & Ntra=Ntra+2
+;oplot,x,tra_low,linestyle=2,color=3e6
+;oplot,x,tra_high,linestyle=2,color=3e6
+tmp=fltarr(Nx,Ntra+2)
+tmp(*,0)=tra_low
+tmp(*,1:Ntra)=tra
+tmp(*,Ntra+1)=tra_high
+tra=tmp & Ntra=Ntra+2
 ;экстрапол€ци€ траекторий и линий за кра€ формата
 ext=50  ;50  - 2x1
-xx=findgen(Nx+2*ext)-ext
-yy=findgen(Ny+2*ext)-ext
-line_ext=fltarr(Ny+2*ext,Nlin)
-tra_ext=fltarr(Nx+2*ext,Ntra)
-for k=0,Nlin-1 do line_ext(*,k)=INTERPOL( line(*,k),y,yy)
-for k=0,Ntra-1 do tra_ext(*,k)=INTERPOL( tra(*,k),x,xx)
-
+xx=findgen(Nx+2*ext)-ext  ; увеличиваем область вдоль дисперсии
+yy=findgen(Ny+2*ext)-ext ; увеличиваем область вдоль щели
+line_ext=fltarr(Ny+2*ext,Nlin) ; подготавливаем увеличенные массивы дл€ линий
+tra_ext=fltarr(Nx+2*ext,Ntra) ; то же самое дл€ траекторий
+for k=0,Nlin-1 do begin
+line_ext(*,k)=INTERPOL( line(*,k),y,yy) ; интерпол€ци€ на иррегул€рной сетке
+;oplot,line_ext(*,k),yy,color=24, linestyle=4
+;wait,0.1
+endfor
+for k=0,Ntra-1 do begin
+tra_ext(*,k)=INTERPOL( tra(*,k),x,xx)
+;oplot,xx,tra_ext(*,k),color=24, linestyle=4
+;wait,0.1
+endfor
 ;определение координат точек пересечени€ линий и траекторий
 x1=fltarr(Ntra,Nlin) & y1=x1
 for i=0,Nlin-1 do begin
 for j=0,Ntra-1 do begin
-pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),5,/plot) ; default W = 5 IY
-R=where(pos lt 0,ind) & if ind gt 1 then print,'negative value',i,j
-x1(j,i)=pos(0) & y1(j,i)=pos(1)
+ pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),5) ; »щем пересечение дл€ каждой линии с каждой траекторией
+ R=where(pos lt 0,ind) & if ind gt 1 then print,'negative value',i,j ; обработка ошибки отрицательного значени€
+ x1(j,i)=pos(0) & y1(j,i)=pos(1)
 endfor
 endfor
 ;образование исходной сетки
@@ -134,4 +131,5 @@ oplot,x0,y0,psym=1,symsize=2,color=1e5
 oplot,x1,y1,psym=6,symsize=0.5
 endif
 Nc=N_elements(X0)
+stop,'Proceed to next polarization'
 end

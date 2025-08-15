@@ -19,7 +19,7 @@ R=where(xpk gt w/2 and xpk lt Ny-1-w/2,ind);(xpk gt 0 and xpk lt Ny-1-w/2,ind) ;
 if ind gt 1 then begin
  xpk=xpk(R)
   for j=0,ind-1 do begin
-   f=goodpoly(y(xpk(j)-w/2:xpk(j)+w/2),vector(xpk(j)-w/2:xpk(j)+w/2),2,3)
+   f=goodpoly(y(xpk(j)-w/2:xpk(j)+w/2),vector(xpk(j)-w/2:xpk(j)+w/2),2,5)
    xpk(j)=-f(1)/f(2)/2
   endfor
 endif
