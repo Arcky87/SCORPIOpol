@@ -14,4 +14,3 @@ tv,255-bytscl(map,avg_map-rms_map*co/3,avg_map+rms_map*co),0,Ny+1
 endif
 return,ima_corr
 end
-

@@ -64,7 +64,7 @@ endfor
 
 ;if p eq 1 then tv,255-bytscl(congrid(map,a(1)/4,a(2)*co),-rms_map,5*rms_map),100+a(1)/4,(a(2)+1)*bin/4.0*k*co
 if p eq 1 then tv,255-bytscl(congrid(map,a(1),a(2)*co),-rms_map,5*rms_map),100+a(1),(a(2)+1)*k*co ELSE $
-print,'subsky ',titl(j)+',   exposure'+string(i+1),NSdeg
+print,'subsky ',titl(j);+',   exposure'+string(i+1),NSdeg
 
 endfor
 ;if p eq 1 then wait,0.05
@@ -95,24 +95,4 @@ writefits,dir+'obj-sky.fts',cube,h
 
 NSfin:
 
-END
-
-wdir='h:\red_data.pol\Sy1\Mkn79_151106\'
-wdir='h:\red_data.pol\Sy1\NGC3516_170131\'
-wdir='h:\red_data.pol\Sy1\IRAS03450_141020\'
-wdir='h:\red_data.pol\Sy1\NGC5548_150325\'
-neon=readfits(wdir+'neon_lin.fts')
-
-a=size(neon)
-neon=total(neon(*,a(2)*0.5-a(2)/8:a(2)*0.5+a(2)/8,*),2)
-M=10 & w=3 & xcross=findgen(2*M+1)-M
-
-for k=0,a(3)-1 do begin
-ycross=cross_norm(neon(*,k),neon(*,0),M)
-f=goodpoly(xcross(M-w:M+w),ycross(M-w:M+w),2,3,Fit)
-dx=-f(1)/f(2)/2 & print,dx
-endfor
-subsky_WOLL2,wdir,/flat,NSdeg=1,NScut=1,/plot;,/Yshift
-
-;endfor
 END

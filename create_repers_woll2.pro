@@ -79,7 +79,7 @@ xrep=reform(xrep,Ntra,Nline)
 yrep=reform(yrep,Ntra,Nline)
 index=intarr(Nline)
 for k=0,Nline-1 do begin
- f=goodpoly(yrep(*,k),xrep(*,k),1,5,Xfit) ; default 1,3 IY
+ f=goodpoly(yrep(*,k),xrep(*,k),1,2,Xfit) ; default 1,3 IY
  err=stdev(xrep(*,k)-Xfit)
  if err lt 0.75 then begin
   if keyword_set(plot) then oplot,xrep(*,k),yrep(*,k),color=258,psym=6,thick=2

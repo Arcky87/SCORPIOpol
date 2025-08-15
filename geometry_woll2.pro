@@ -131,5 +131,4 @@ oplot,x0,y0,psym=1,symsize=2,color=1e5
 oplot,x1,y1,psym=6,symsize=0.5
 endif
 Nc=N_elements(X0)
-stop,'Proceed to next polarization'
 end
