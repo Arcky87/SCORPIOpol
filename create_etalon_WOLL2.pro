@@ -12,7 +12,7 @@ cube=readfits(dir+'neon.fts',h)
 a=size(cube) & Nx=a(1)  & Ns=a(3)
 spectra=fltarr(Nx,Ns)
 x=findgen(Nx)
-G=0.25
+G=0.5 ; гамма-коррекци€, вли€ет на интенсивность линий
 for j=0,Ns-1 do begin
 spectra(*,j)=total(cube(*,*,j),2)
 R=where(spectra(*,j) lt 1,ind1) & if ind1 gt 1 then spectra(R,j)=1
@@ -21,8 +21,6 @@ fi_peak,x ,spectra(*,j),0,ipix,xpk,ypk,bkpk,ipk
 fon=INTERPOL(bkpk,xpk,x)
 spectra(*,j)=spectra(*,j)-fon & R=where(spectra(*,j) lt 0) & spectra(R,j)=0
 endfor
-
-
 
 window,2,xsize=1600,ysize=500,title=dir
 !P.multi=[0,1,1]
@@ -64,8 +62,8 @@ w_out=w_out(1:N-1)
 N=N-1
 x=findgen(Nx)
 Ndeg=3
-f=goodpoly(x_out,w_out,Ndeg,3)
-wav=0 & for j=0,Ndeg do wav=wav+f(j)*x^j
+f=goodpoly(x_out,w_out,Ndeg,3); робастна€ кубическа€ интерпол€ци€ пикселей по фиксированным длинам волн
+wav=0 & for j=0,Ndeg do wav=wav+f(j)*x^j ; получение дисперсионной кривой
 wav_min=10*fix(wav(0)/10) & wav_max=10*fix(wav(Nx-1)/10)   ;comment - rfix?!
 disp=fix((wav(Nx/2+1)-wav(Nx/2))/0.1)*0.1 & order=1
 print,disp,wav_min,wav_max
@@ -74,7 +72,7 @@ xpos=fltarr(5,N) & xpos(0,*)=w_out  & xpos(1,*)=x_out
 
 
 print,xpos
-eps=10
+eps=75
 for k=0,N-1 do begin
 for j=0,Ns-1 do begin
 max_value=max(spectra(xpos(1,k)-eps:xpos(1,k)+eps,j),Nmax)

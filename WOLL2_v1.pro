@@ -41,8 +41,7 @@ geometry_coeff=fltarr(1000,4,4)
 angle=' for   polarization angle = '+['0 deg','90 deg','45 deg','135 deg']
 print,'D_y=',D_y
 for k=0,3 do begin
-geometry_WOLL2,cube(*,*,k),tra(*,*,k),X0,Y0,X1,Y1,plot=key1(2),scale=4,tresh=1,TITLE=angle(k),Dy=D_y ;default sc=4, thresh=1, no eps keyword IY
-wait,1
+geometry_WOLL2,cube(*,*,k),tra(*,*,k),X0,Y0,X1,Y1,plot=key1(2),eps=35,scale=4,tresh=2,TITLE=angle(k),Dy=D_y ;default sc=4, thresh=1, no eps keyword IY
 Nc=N_elements(X0)
 coords=[X0,Y0,X1,Y1]
 
@@ -50,6 +49,7 @@ C=reform(coords,Nc,4)
 geometry_coeff(0:Nc-1,*,k)=C
 
 endfor
+
 writefits,wdir+'geometry.fit',geometry_coeff
 print,'Model geometry is created!'
   endif
@@ -62,8 +62,9 @@ name_target=['  obj','  star_0','  star']
 ;****************************
 scale=0.357 ; масштаб вдоль щели
 ;****************************
-;Hslit =320 ;высота щели в рх *
+H_slit =160 ;высота щели в рх *
 ;****************************
+print, 'H_slit ',H_slit, 'scale ', scale
 xpk0=[-25.75,0,25.75] ; координаты точечного теста в arcsec
 cube_eta=readfits(wdir+'eta_i.fts',h_eta)
 cube_neon=readfits(wdir+'neon_i.fts',h_neon) & print,'cube neon:  ',size(cube_neon)
@@ -82,20 +83,18 @@ geometry_coeff=readfits(wdir+'geometry.fit')
 
 FOR k=0,Npol-1 DO BEGIN
 R=where(geometry_coeff(*,0,k) gt 0,ind)
+
 C=fltarr(ind,4) & C(*,*)=geometry_coeff(0:ind-1,*,k)
 ;C=readfits(dir+'geometry'+string(k+1,format='(I1)')+'.fit')
 ;определение центра щели
 eta=cube_eta(*,*,k)
+argh=size(eta) & Nx=argh(1) & Ny=argh(2)
 eta_new=WARP_TRI(c(*,0),c(*,1),c(*,2),c(*,3),eta)
 wx=10  & y=findgen(Ny) & wy=3
 Vy=total(eta_new(Nx/2-Nx/8:Nx/2+Nx/8,*),1)
 d_y=100
 ;Vy(0:d_y)=0  & Vy(Ny-d_y:Ny-1)=0
 fi_peak,y,Vy,max(Vy)/5,ipix,xpk,ypk,bkpk,ipk
-PRINT,'IPK',IPK
-window,0
-
-plot,y,Vy,xst=1
 for j=0,ipk-1  do begin
 f=goodpoly(y(xpk(j)-wy:xpk(j)+wy),Vy(xpk(j)-wy:xpk(j)+wy),2,3,fit)
 xpk(j)=-f(1)/f(2)/2
@@ -104,11 +103,11 @@ xpk0=xpk0/scale
 xpk=xpk
 Yc=xpk(1)
 print,'Yc=',Yc
-PRINT,'h_SLIT', H_SLIT
+print,'h_SLIT', H_SLIT
 neon_corr(*,*,k)=correction_image(cube_neon(*,*,k),C,Yc=xpk(1),Hslit=H_slit,plot=key1(3),TITLE='neon '+angle(k)) & WAIT,key1(3)
 flat_corr(*,*,k)=correction_image(cube_flat(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='flat '+angle(k)) & WAIT,key1(3)
- eta_corr(*,*,k)=correction_image(cube_eta(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='eta '+angle(k))  & WAIT,key1(3)
- ;exposure
+eta_corr(*,*,k)=correction_image(cube_eta(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='eta '+angle(k))  & WAIT,key1(3)
+;exposure
  for j=0,Ncub-1 do begin
  for i=0,Nexp-1 do begin
  if total(cube_obj(*,*,k,i,j)) ne 0 then begin
@@ -121,6 +120,11 @@ print,angle(k),name_target(j),'   exposure',i
  endfor
 
 ENDFOR
+
+;b=size(eta) & Nx=a(1) & Ny=a(2)
+;Window,2,xsize=Nx/2,ysize=Ny+Hslit,TITLE=title
+
+
 writefits,wdir+'eta.fts',eta_corr,h_eta
 writefits,wdir+'neon.fts',neon_corr,h_neon
 writefits,wdir+'flat.fts',flat_corr,h_flat
@@ -196,7 +200,6 @@ endif
   if step(5) eq 1 then begin
      DISP=readfits(wdir+'dispersion.fit',hd)
   print,'DISP:  ', size(DISP)
-  stop
      Ny=sxpar(hd,'NAXIS1') & Npol=sxpar(hd,'NAXIS3')
   Nlin=FIX((end_lambda-beg_lambda)/d_lambda)+1
   PARAM_LIN=[beg_lambda,d_lambda,Nlin]
@@ -228,7 +231,6 @@ endif
   cube_obj=readfits(wdir+'obj.fts',h,/silent)
   Npol=4
   Nexp=sxpar(h,'NAXIS4')
-  print,Nexp
   Ncub=3
   cube_lin=fltarr(Nlin,Ny,Npol,Nexp,Ncub)
 

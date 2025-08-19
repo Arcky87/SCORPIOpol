@@ -41,19 +41,23 @@ ratio(*,*,0)=flat(*,*,1)/flat(*,*,0) & ratio(*,*,1)=flat(*,*,3)/flat(*,*,2)
 
 ;формирование нормировки плоского поля
 ;нормировка по X
-w=5
+;w=5
+w = FIX(Ny*0.05) > 3  ; 5% от высоты, но не менее 3
 ;norm_X=total(total(flat,3),2)/Npol/Ny
 cgdisplay, wid=10
 !p.multi=[0,1,4]
+;ysmoo = fltarr(Nx)
 for k=0,Npol-1 do begin
  norm_X(*,k)=total(flat(*,Ny/2-w:Ny/2+w,k),2)/(2*w+1)
  cgplot,norm_X(*,k),color='blue'
- ;norm_X(*,k)=lowess(indgen(Nx),norm_X(*,k),Nx/80,2,2)  ;!!! 60
+ ;lowess,indgen(Nx),norm_X(*,k),Nx/80,ysmoo,order=2  ;!!! 60
+ ;norm_X(*,k) = ysmoo
  cgoplot,norm_X(*,k)
  for j=0,Ny-1 do begin
   flat(*,j,k)=flat(*,j,k)/norm_X(*,k)
  endfor
 endfor
+stop, 'Flat normalized!'
 ;
 ;;;нормировка по Y
 ; wx=200  & wy=10  & norm_Y=fltarr(Npol)
@@ -84,7 +88,7 @@ rat='ratio '+['  90/0','135/45']
 ;ratio(*,*,0)=flat(*,*,1)/flat(*,*,0) & ratio(*,*,1)=flat(*,*,3)/flat(*,*,2)
 
 
- if keyword_set(plot) then begin
+if keyword_set(plot) then begin
 cgdisplay,wid=0,xsize=650,ysize=900,title=dir+'  '+grating
 ang='angle='+['  0',' 90',' 45','135']+' deg'
 !p.multi=[0,1,6]
@@ -111,6 +115,7 @@ writefits,dir+'tmp_flat.fts',flat,h
 writefits,dir+'avg_flat.fts',avg_flat,h
 writefits,dir+'avg_flat.fts',flat,h
 writefits,dir+'avg_ratio.fts',ratio,h
+print, 'Flat files created!'
 end
 
 log_dir='/data6/SCORPIO/sppol_pipeline_v2023.8/'

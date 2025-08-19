@@ -16,8 +16,7 @@ b=size(table) & N_lines=b(2)
 pos=fltarr(N_lines) & wave=pos
 wave(*)=table(0,*) & pos(*)=table(1,*)
 xpos=fltarr(Ny,N_lines)
-wx=6
-
+wx=45 ; default 6
 
  FOR y=0,Ny-1 do begin
 spectra=neon(*,y)

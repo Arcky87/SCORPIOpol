@@ -21,6 +21,7 @@ for i=0,Nexp(j)-1 do begin
 for k=0,Npol-1 do cube(*,*,k,i,j)=cube(*,*,k,i,j)/avg_flat(*,*,k)
 for k=0,1      do cube(*,*,2*k,i,j)=cube(*,*,2*k,i,j)*avg_ratio(*,*,k)
 endfor & endfor
+print,'Spectra were corrected for flat field and grating polarization!'
 endif
 titl=['object','unpolarized star','polarized star']
 ;вычитание фона ночного неба

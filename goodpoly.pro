@@ -211,17 +211,17 @@ function goodpoly,x,y,order,thresh,yfit,newx,newy,newerr, $
             'not enough data to support even a non-robust polynomial fit.'
          return,coeff
       endif else begin
-         coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig)
+         coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig,status=dull)
          flat = (yy-yfit)+(total(yfit)/arlen)
          sigma = stdev(flat,mean)
       endelse
- 
+
    ; Initial fit excluding EXCLUDE extrema points before fit.
    endif else begin
       nex = ceil(exclude/2.0)
       sidx=sort(yy)
       sidx=sidx[nex:arlen-1-nex]
-      coeff=poly_fit(xx[sidx],yy[sidx],order,sigma=coeffsig)
+      coeff=poly_fit(xx[sidx],yy[sidx],order,sigma=coeffsig,status=dull)
       yfit = poly(xx,coeff)
       flat = (yy-yfit)+(total(yfit)/arlen)
       sigma = stdev(flat[sidx],mean)
@@ -241,14 +241,14 @@ function goodpoly,x,y,order,thresh,yfit,newx,newy,newerr, $
       endif
       arlen=goodnum
    endif
- 
+
    if nbad ne 0 then begin
 
       ; Second pass fit with bad points removed (if needed).
-      coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig)
+      coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig,status=dull)
       flat = (yy-yfit)+(total(yfit)/arlen) 
       sigma = stdev(flat,mean)
-    
+
       ;Remove all points beyond threshold sigma
       good=where( abs(flat-mean) lt thresh*sigma,goodnum)
       nbad = arlen-goodnum 
@@ -268,14 +268,14 @@ function goodpoly,x,y,order,thresh,yfit,newx,newy,newerr, $
 
    ; Third pass fit with bad points removed.
    if nbad ne 0 then begin
-      coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig)
+      coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig,status=dull)
       flat = (yy-yfit)+(total(yfit)/arlen)
       sigma = stdev(flat,mean)
    endif
 
    if weighted then $
       coeff=poly_fit(xx,yy,order,yfit=yfit,sigma=coeffsig, $
-         measure_errors=ye)
+         measure_errors=ye,status=dull)
 
    newx=xx
    newy=yy

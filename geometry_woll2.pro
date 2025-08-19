@@ -11,8 +11,8 @@ pro geometry_WOLL2,neon,tra,DY=dy,X0,Y0,X1,Y1,SCALE=scale,TRESH=tresh,EPS=eps,PL
 
 a=size(neon) & Nx=a(1) & Ny=a(2)
 if not(keyword_set(scale)) then scale=2
-if not(keyword_set(tresh)) then tresh=10
-if not(keyword_set(eps)) then eps=40
+if not(keyword_set(tresh)) then tresh=2 ;10 - mine IY
+if not(keyword_set(eps)) then eps=20 ; 40 - mine IY
 if not(keyword_set(dy)) then dy=10
 if keyword_set(plot) then P=1 else P=0
 ;”величиваем число траекторий по высоте щели
@@ -23,7 +23,7 @@ b=size(tra) & Ntra=b(2)
 create_repers_WOLL2,neon,tra,xrep,yrep,TRESH=tresh,EPS=eps,plot=P,TITL=titl
 
 a=size(xrep) & Nrep=a(2)
-SY=640 & SX=1900
+SY=140 & SX=972
 
 if P eq 1 then window,2,xsize=SX,ysize=SY,ypos=620+(SY+40),xpos=0,title='approximation curvature of lines' +titl,retain=2
 !P.multi=[0,1,1]
@@ -31,19 +31,21 @@ map=neon
 ;robomean,congrid(map,Nx/10,Ny/10),3,0.5,mean,rms
 ; 255-bytscl(ALOG10(congrid(neon,SX,SY)),1,3)
 if P eq 1 then  begin
-tv,255-bytscl(ALOG10(congrid(map,SX,SY)),1,3);mean-5*rms,mean+rms*50)
+tv,255-bytscl(congrid(map,SX,SY),-10,1000);mean-5*rms,mean+rms*50)
 plot,[0,Nx-1],[0,Ny-1],xs=1,yst=1,/nodata,position=[0,0,1,1],/noerase
 for k=0,Ntra-1 do oplot,tra(*,k)
-oplot,xrep,yrep,psym=6,symsize=0.5,thick=2
+oplot,xrep,yrep,psym=6,symsize=0.5,thick=2,color=2e6
 endif
 ;построение модели геометрии
 Ndeg=2 ; степень полинома аппроксимаци линий вдоль щели
 ; убираем реперы крайних линий (самую синюю и самую красную) ”брал 
-;xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2
+xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2 ; строка не нужна дл€ woll2 ???
+print,'Nrep=',Nrep
 ff=fltarr(Ndeg+1,Nrep)
 ;аппроксимируем линии полиномом Ndeg
 for k=0,Nrep-1 do begin
 ff(*,k)=goodpoly(yrep(*,k),xrep(*,k),Ndeg,3,Xfit) ; 3 --- default IY
+;print,'line=',k,stdev(xrep(*,k)-Xfit)
 endfor
 ;аппроксимаци€ коеффициентов наклона и кривизны линий
 ap=fltarr(3,Ndeg+1)
@@ -59,12 +61,13 @@ fit=0 & for i=0,Ndeg do fit=fit+ff(i,k)*y^i
 line(*,k)=fit
 endfor
 ;добавление линий на кра€х
-d_tmp=10 ;отступ пикселей от левого кра€ экрана
+d_tmp=45;
 tmp=fltarr(Ny,Nrep+2)
 tmp(*,0)=ap(0,1)*y+ap(0,2)*y^2+d_tmp
-tmp(*,Nrep+1)=line(*,Nrep-1)+(Nx-3-max(line(*,Nrep-1)))
+tmp(*,Nrep+1)=line(*,Nrep-1)+(Nx-5-max(line(*,Nrep-1)))
 tmp(*,1:Nrep)=line(*,*)
 line=tmp & Nlin=Nrep+2
+;for k=0,Nlin-1 do oplot,line(*,k),y,color=3e6
 ; »сходные линии 
 ;for k=1,Nlin-1 do oplot,line(*,k),y,color=3e6 ; 
 ; Ћева€ граница - красный
@@ -92,27 +95,23 @@ tmp(*,1:Ntra)=tra
 tmp(*,Ntra+1)=tra_high
 tra=tmp & Ntra=Ntra+2
 ;экстрапол€ци€ траекторий и линий за кра€ формата
-ext=50  ;50  - 2x1
+ext=70  ;50  - 2x1
 xx=findgen(Nx+2*ext)-ext  ; увеличиваем область вдоль дисперсии
 yy=findgen(Ny+2*ext)-ext ; увеличиваем область вдоль щели
 line_ext=fltarr(Ny+2*ext,Nlin) ; подготавливаем увеличенные массивы дл€ линий
 tra_ext=fltarr(Nx+2*ext,Ntra) ; то же самое дл€ траекторий
 for k=0,Nlin-1 do begin
 line_ext(*,k)=INTERPOL( line(*,k),y,yy) ; интерпол€ци€ на иррегул€рной сетке
-;oplot,line_ext(*,k),yy,color=24, linestyle=4
-;wait,0.1
 endfor
 for k=0,Ntra-1 do begin
 tra_ext(*,k)=INTERPOL( tra(*,k),x,xx)
-;oplot,xx,tra_ext(*,k),color=24, linestyle=4
-;wait,0.1
 endfor
 ;определение координат точек пересечени€ линий и траекторий
 x1=fltarr(Ntra,Nlin) & y1=x1
 for i=0,Nlin-1 do begin
 for j=0,Ntra-1 do begin
- pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),5) ; »щем пересечение дл€ каждой линии с каждой траекторией
- R=where(pos lt 0,ind) & if ind gt 1 then print,'negative value',i,j ; обработка ошибки отрицательного значени€
+ pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),3) ; »щем пересечение дл€ каждой линии с каждой траекторией
+ R=where(pos lt 0,ind) & if ind ne 0 then print,'negative value',i,j, pos(0),pos(1) ; обработка ошибки отрицательного значени€
  x1(j,i)=pos(0) & y1(j,i)=pos(1)
 endfor
 endfor
@@ -122,8 +121,7 @@ Y0=Y1 & for k=0,Nlin-1 do Y0(*,k)=Y1(*,Nlin/2)
 X0=reform(X0,Ntra*Nlin) & X1=reform(X1,Ntra*Nlin)
 Y0=reform(Y0,Ntra*Nlin) & Y1=reform(Y1,Ntra*Nlin)
 if P eq 1 then begin
-
-window,4,xsize=SX,ysize=SY,xpos=0,title='input (cross) and output (square) grid'+titl,retain=2  ;ypos=620+(SY+40)*2,
+window,4,xsize=SX+800,ysize=SY+500,xpos=0,title='input (cross) and output (square) grid'+titl,retain=2  ;ypos=620+(SY+40)*2,
 plot,[min(xx),max(xx)],[min(yy),max(yy)],xst=1,yst=1,/nodata,position=[0,0,1,1],/norm
 for k=0,Ntra-1 do oplot,xx,tra_ext(*,k),linestyle=1
 for k=0,Nlin-1 do oplot,line_ext(*,k),yy,linestyle=1

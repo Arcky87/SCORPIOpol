@@ -25,7 +25,7 @@ if FILE_TEST(wdir) eq 0 then SPAWN,'mkdir '+wdir
 ;Xstart=24 & Xfinish=2050	;20 - overscan  ;1026 + GS17 ;261    ;2x4
 ;Xstart=310 & Xfinish=1900	;20 - overscan  ;940 + LP425 ;261    ;2x4
 ;Xstart=630 & Xfinish=3800	;20 - overscan  ;940 + LP425 ;261    ;1x2
-Xstart=25 & Xfinish=4620 ;20 - overscan  ;940 + LP425 ;261    ;1x2
+Xstart=100 & Xfinish=4600 ;20 - overscan  ;940 + LP425 ;261    ;1x2
 
 
 ;====================================================================

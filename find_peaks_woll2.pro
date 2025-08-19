@@ -1,4 +1,3 @@
-
 function find_peaks_WOLL2,vector,W=w,TRESH=tresh,PLOT=plot,MAX_val=max_val
 ;w - width of peaks
 if not(keyword_set(W)) then W=10
