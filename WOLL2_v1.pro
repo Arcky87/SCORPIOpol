@@ -46,6 +46,13 @@ Nc=N_elements(X0)
 coords=[X0,Y0,X1,Y1]
 
 C=reform(coords,Nc,4)
+
+; Проверяем входные данные перед сохранением
+zero_points = where((C[*,0] eq 0) and (C[*,1] eq 0) and (C[*,2] eq 0) and (C[*,3] eq 0), count)
+if count gt 0 then begin
+  print, 'Frame ', k, ': ', count, ' points at (0,0) before saving'
+endif
+
 geometry_coeff(0:Nc-1,*,k)=C
 
 endfor

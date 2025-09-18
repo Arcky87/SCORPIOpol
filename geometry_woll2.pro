@@ -102,24 +102,58 @@ line_ext=fltarr(Ny+2*ext,Nlin) ; подготавливаем увеличенные массивы для линий
 tra_ext=fltarr(Nx+2*ext,Ntra) ; то же самое для траекторий
 for k=0,Nlin-1 do begin
 line_ext(*,k)=INTERPOL( line(*,k),y,yy) ; интерполяция на иррегулярной сетке
+;ОТЛАДКА Проверяем наличие (0,0) в интерполированных данных
+zero_points = where((line_ext(*,k) eq 0) and (yy eq 0), count)
+if count gt 0 then begin
+    print, 'Line ', k, ': Found ', count, ' points at (0,0) after interpolation'
+    print, '  Source line range: ', min(line(*,k)), 'to', max(line(*,k))
+endif
+;КОНЕЦ ОТЛАДКИ
 endfor
 for k=0,Ntra-1 do begin
 tra_ext(*,k)=INTERPOL( tra(*,k),x,xx)
+;ОТЛАДКА Проверяем наличие (0,0) в интерполированных данных
+zero_points = where((tra_ext(*,k) eq 0) and (xx eq 0), count)
+if count gt 0 then begin
+    print, 'Trajectory ', k, ': Found ', count, ' points at (0,0) after interpolation'
+      print, '  Source trajectory range: ', min(tra(*,k)), 'to', max(tra(*,k))
+endif
+;КОНЕЦ ОТЛАДКИ
 endfor
 ;определение координат точек пересечения линий и траекторий
 x1=fltarr(Ntra,Nlin) & y1=x1
+zero_count = 0
+
+
 for i=0,Nlin-1 do begin
 for j=0,Ntra-1 do begin
  pos=intersection_WOLL2(line_ext(*,i),tra_ext(*,j),3) ; Ищем пересечение для каждой линии с каждой траекторией
+;ОТЛАДКА
+ if (pos[0] eq 0 and pos[1] eq 0) then begin
+    zero_count = zero_count + 1
+    print, 'Zero intersection at line=', i, 'traj=', j
+    print, '  Line ', i, ' range: ', min(line_ext(*,i)), 'to', max(line_ext(*,i))
+    print, '  Traj ', j, ' range: ', min(tra_ext(*,j)), 'to', max(tra_ext(*,j))
+endif
+;КОНЕЦ ОТЛАДКИ
  R=where(pos lt 0,ind) & if ind ne 0 then print,'negative value',i,j, pos(0),pos(1) ; обработка ошибки отрицательного значения
  x1(j,i)=pos(0) & y1(j,i)=pos(1)
 endfor
 endfor
+print, 'Total zero intersections: ', zero_count
 ;образование исходной сетки
 X0=X1 & for k=0,Ntra-1 do  X0(k,*)=X1(Ntra/2,*)
 Y0=Y1 & for k=0,Nlin-1 do Y0(*,k)=Y1(*,Nlin/2)
 X0=reform(X0,Ntra*Nlin) & X1=reform(X1,Ntra*Nlin)
 Y0=reform(Y0,Ntra*Nlin) & Y1=reform(Y1,Ntra*Nlin)
+
+; ФИНАЛЬНАЯ ПРОВЕРКА НА (0,0)
+zero_points = where((X0 eq 0) and (Y0 eq 0) and (X1 eq 0) and (Y1 eq 0), final_zero_count)
+if final_zero_count gt 0 then begin
+  print, '=== FINAL RESULT: ', final_zero_count, ' POINTS AT (0,0) ==='
+  print, 'These points will be saved in geometry.fit'
+endif
+
 if P eq 1 then begin
 window,4,xsize=SX+800,ysize=SY+500,xpos=0,title='input (cross) and output (square) grid'+titl,retain=2  ;ypos=620+(SY+40)*2,
 plot,[min(xx),max(xx)],[min(yy),max(yy)],xst=1,yst=1,/nodata,position=[0,0,1,1],/norm
