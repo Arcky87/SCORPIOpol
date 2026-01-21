@@ -37,6 +37,7 @@
 .compile robust_sigma.pro
 .compile read_cube_woll2.pro
 .compile med.pro
+.compile numlines.pro
 .compile polyfitw.pro
 .compile poly.pro
 .compile create_etalon_WOLL2.pro

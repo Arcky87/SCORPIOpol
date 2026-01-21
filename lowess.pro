@@ -1,132 +1,162 @@
+FUNCTION LOWESS,X,Y,WINDOW,NDEG, NOISE
+;
 ;+
 ; NAME:
-;  lowess
+;	LOWESS
+;
 ; PURPOSE:
-;  Lowess smoothing of data.
-; DESCRIPTION:
+;	Robust smoothing of 1D data. A non-parametric way of drawing a smooth
+;	curve to represent data. (For 2D (map) data, use LOESS.)
 ;
-;  This algorithm was gleaned from a description of LOWESS, standing
-;  for LOcally WEighted Scatterplot Smoother, found in "The Elements of
-;  Graphing Data", by William S. Cleveland, Wadsworth Advanced Books and
-;  Software.  This implementation is probably not the same as the one
-;  described.  I have tried to include the provision for using different
-;  weighting functions.  At the time of writing I don't know what effect
-;  different functions have upon the smoothing process.  This procedure
-;  in itself is not intended to be robust (as defined by Cleveland). By
-;  including the possiblity of varying weights for the data points it is
-;  possible to acheive robustness by multiple calls of this routine.
-;
-; CATEGORY:
-;  Numerical
 ; CALLING SEQUENCE:
-;  lowess,x,y,width,ysmoo,WEIGHT=weight
-; INPUTS:
-;  x      - Independant variable values.
-;  y      - Dependant variable values.
-;  width  - Width of smoothing function (in same units sa X).
-; OPTIONAL INPUT PARAMETERS:
+;	YSmooth = LOWESS( X, Y, Window, NDeg, Noise )
 ;
-; KEYWORD INPUT PARAMETERS:
-;  NEWX   - If provided, the smoothed curve is computed over this input
-;             range of x values rather than the input x range.  ysmoo
-;             will have the same length as NEWX if it is provided.
-;  ORDER  - Order of polynomial fit during the lowess smoothing. (default=1)
-;  WEIGHT - Weight to use for each point (default is to have equal weight)
+; INPUT ARGUMENTS:
+;	X = X values
+;	Y = Y values, to be smoothed
+;	WINDOW = width of smoothing window
+;	NDEG   = degree of polynomial to be used within the window (1 or 2 
+;		recommended)
 ;
-; OUTPUTS:
-;  ysmoo  - Smoothed version of Y, same number of points as input x and y.
-; KEYWORD OUTPUT PARAMETERS:
+; OUTPUT:
+;	Ysmooth - LOWESS returns the vector of smoothed Y values
 ;
-; COMMON BLOCKS:
+; OPTIONAL OUTPUT ARGUMENT:
+;	Noise = the robust std. deviation w.r.t. the fit, at each point
 ;
-; SIDE EFFECTS:
+; NOTE:
+;	This routine uses a least-squares fit within a moving window. The fit
+;	is weighted by statistical weights and weights that are a function of
+;	distance from the center of the window. This is a "local weighted
+;	polynomial regression smoother" (Cleveland 1979, Journal of the Amer.
+;	Statistical Association, 74, 829-836).
+;	A polynomial of degree NDEG+1 is fitted directly to the first and last 
+;	WINDOW/2 points. 
 ;
-; RESTRICTIONS:
+;	This routine is fairly slow. 
 ;
-; PROCEDURE:
-;  By default, the weighting function is triangular where the weight is
-;  1 at the output point location, and drops linearly to zero +/- width from
-;  the output point.
+; SUBROUTINES CALLED:
+;	ROBUST_LINEFIT
+;	ROBUST_POLY_FIT
+;	ROB_CHECKFIT
+;	ROBUST_SIGMA
+;	POLYFITW
+;	MED
 ;
-; MODIFICATION HISTORY:
-;  98/06/16, Written by Marc W. Buie, Lowell Observatory
-;  2001/02/01, MWB, changed Polyfitw call to poly_fit equivalent
-;  2006/11/13, MWB, forced loop variables to LONG
-;
+; REVISION HISTORY:
+;	Written,  H.T. Freudenreich, HSTX, 1/8/93
+;	H.T. Freudenreich, 2/94 Return sigma rather than slope
 ;-
-pro lowess,x,y,width,ysmoo,WEIGHT=weight,ORDER=order,NEWX=newx
 
-   if badpar(x,[2,3,4,5],1,CALLER='LOWESS: (x) ',npts=nx) then return
-   if badpar(y,[2,3,4,5],1,CALLER='LOWESS: (y) ',npts=ny) then return
-   if badpar(width,[2,3,4,5],0,CALLER='LOWESS: (width) ') then return
-   if badpar(weight,[0,2,3,4,5],1,CALLER='LOWESS: (WEIGHT) ', $
-                       default=replicate(1.0,nx),npts=nw) then return
-   if badpar(order,[0,2,3],0,CALLER='LOWESS: (ORDER) ',default=1) then return
-   if badpar(newx,[0,2,3,4,5],[0,1],CALLER='LOWESS: (NEWX) ',default=-1) then return
+ON_ERROR,2
 
-   if nx ne ny then begin
-      print,'LOWESS: lengths of x and y must match'
-      return
-   endif
+EPS = 1.0E-20
 
-   TRIBASE=0.01
+ITMAX = 3
 
-   if nw ne nx then begin
-      print,'LOWESS: length of weight vector must match x and y'
-      return
-   endif
+M=WINDOW/2
+N=N_ELEMENTS(X)
 
-   if newx[0] eq -1 and n_elements(newx) eq 1 then $
-      nnx=0 $
-    else $
-      nnx=n_elements(newx)
+IF N_PARAMS() GT 4 THEN BEGIN
+   WANT_NOISE=1 
+   NOISE=FLTARR(N)
+ENDIF ELSE WANT_NOISE=0
 
-   ; return smoothed points for all input X
-   if nnx eq 0 then begin
-      ysmoo = y * 0.
-      for i=0L,nx-1 do begin
+Z=Y
 
-         ; Set limits on smoothing width
-         xl = x[i] - width
-         xr = x[i] + width
+FOR I=M,N-M-1 DO BEGIN
+  WIDENED=0
 
-         z=where(x ge xl and x le xr, count)
+  FITIT:
+  U=X(I-M:I+M) - X(I)
+  V=Y(I-M:I+M)
 
-         if count le order+1 then begin
-            ysmoo[i] = y[i]
-         endif else begin
-            w = weight[z]*(1.0 - ((1.0-TRIBASE)/width) * abs(x[z]-x[i]))
-            coeff=poly_fit(x[z]-x[i],y[z],order, $
-                           measure_errors=sqrt(1.0/w),status=status)
-            ysmoo[i] = poly(0.0,coeff)
-         endelse
-      endfor
+; If V is constant, do nothing:
+  IF MAX(V) EQ MIN(V) THEN BEGIN
+     Z(I)=V(0)
+     IF WANT_NOISE EQ 1 THEN NOISE(I)=0.
+     GOTO,NEXT
+  ENDIF
 
-   ; return smoothed points for only the requested X locations
-   endif else begin
-      ysmoo = fltarr(nnx)
-      for i=0L,nnx-1 do begin
+; First, a robust fit. Allowing more than 3 iterations is usually a waste
+; of time.
+  IF NDEG EQ 1 THEN CC=ROBUST_LINEFIT(  U,V,     YFIT, NUMIT=ITMAX )  ELSE $
+                    CC=ROBUST_POLY_FIT( U,V,NDEG,YFIT, NUMIT=ITMAX )
+; If no fit possible...
+  NCOEF=N_ELEMENTS(CC)
+  IF NCOEF NE (NDEG+1) THEN BEGIN
+     IF (I GT M) AND (I LT (N-M-1)) THEN BEGIN
+;       Widen the window temporarily and try again.
+        WINDOW=WINDOW+2 & M=M+1
+        PRINT,'LOWESS: Expanding window by 2 points to try again'
+        WIDENED = 1
+        GOTO,FITIT
+     ENDIF ELSE BEGIN
+        Z(I) = MED(V)
+        IF WANT_NOISE EQ 1 THEN NOISE(I)=ROBUST_SIGMA(V-Z(I),/ZERO)
+        PRINT,'LOWESS: Taking Y median instead of fit'
+        GOTO,NEXT
+     ENDELSE
+  ENDIF
 
-         ; Set limits on smoothing width
-         xl = newx[i] - width
-         xr = newx[i] + width
+; Now calculate the biweights from the residuals:
+  R = V-YFIT
+  SIG = ROBUST_SIGMA(R,/ZERO)
+  IF WANT_NOISE EQ 1 THEN NOISE(I)=SIG
+  IF SIG LT eps THEN SIG=TOTAL(ABS(R))/.8/N_ELEMENTS(R)
+  IF SIG LT eps THEN BEGIN
+     W=FLTARR(WINDOW)
+     W(*)=1.0  ; equal weights
+  ENDIF ELSE BEGIN
+     R = ( R/(6.*SIG) )^2
+     Q = WHERE(R GT 1.,COUNT) & IF COUNT GT 0 THEN R(Q)=1.
+     W =(1.-R)^2
+  ENDELSE
 
-         z=where(x ge xl and x le xr, count)
+; Now multiply by the "distance" weights:
+  DEL = .5*( U(1)-U(0)+U(M)-U(M-1) )
+  D = DEL+MAX([U(WINDOW-1)-U(M),U(M)-U(0)]) ;=max distance of any point from Xi
+  WD= ( 1.- ( ABS( ( U-U(M) )/D ) )^3 )^3
 
-         if count eq 1 then begin
-            ysmoo[i] = y[z[0]]
-         endif else if count le order+1 then begin
-            interp,x,y,newx[i],newy
-            ysmoo[i] = newy
-         endif else begin
-            w = weight[z]*(1.0 - ((1.0-TRIBASE)/width) * abs(x[z]-newx[i]))
-            coeff=poly_fit(x[z]-newx[i],y[z],order, $
-                           measure_errors=sqrt(1.0/w),status=status)
-            ysmoo[i] = poly(0.0,coeff)
-         endelse
-      endfor
-   endelse
+  W = W*WD
+  W = W/TOTAL(W)
 
-   ysmoo=trimrank(ysmoo)
+; Now a weighted polynomial fit:
+  CC=POLYFITW(U,V,W,NDEG,YFIT)
 
-end
+  Z(I) = CC(0)
+  IF WIDENED EQ 1 THEN BEGIN 
+     WINDOW=WINDOW-2 & M=M-1
+     WIDENED=0
+  ENDIF
+
+  NEXT:
+ENDFOR
+
+; Now take care of the end points! Fit a polynomial of degree NDEG to them.
+
+I1=WINDOW-1
+FITSTART:
+U=X(0:I1)  &  V=Z(0:I1)
+CC=ROBUST_POLY_FIT( U,V,NDEG,YFIT,SIG )  
+IF N_ELEMENTS(CC) NE (NDEG+1) THEN BEGIN
+   I1=I1+1 
+   GOTO,FITSTART
+ENDIF
+Z(0:M-1) = YFIT(0:M-1)
+IF WANT_NOISE EQ 1 THEN NOISE(0:M-1)=SIG
+
+I1=N-WINDOW 
+FITEND:
+U=X(I1:N-1)  &  V=Z(I1:N-1)
+CC=ROBUST_POLY_FIT( U,V,NDEG,YFIT,SIG )  
+IF N_ELEMENTS(CC) NE (NDEG+1) THEN BEGIN
+   I1=I1-1 
+   GOTO,FITEND
+ENDIF
+IEND=N_ELEMENTS(YFIT)
+Z(N-M:N-1)=YFIT(IEND-M:IEND-1)
+IF WANT_NOISE EQ 1 THEN NOISE(N-M:N-1)=SIG
+
+RETURN,Z
+END

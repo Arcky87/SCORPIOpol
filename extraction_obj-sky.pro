@@ -15,10 +15,10 @@ return,vector
 end
 
 
-dir='/hdd/Glagol/2019/WOLL-2/20191216/HD5797/'
+dir='/hdd/Glagol/2019/WOLL-2/20191216/HD18078/'
 cube=readfits(dir+'obj-sky.fts',h)
 biny=2.0
-apert=[4.0,4.0,4.0];in arcsec [5.0,5.0,5.0]
+apert=[5.0,5.0,5.0];in arcsec [5.0,5.0,5.0]
 a=size(cube)
 Nx=a(1) & Ny=a(2) & Npol=a(3) & Ncub=a(5)
 Nexp=[sxpar(h,'NUMEXP1'),sxpar(h,'NUMEXP2'),sxpar(h,'NUMEXP3')]
@@ -223,7 +223,6 @@ stop_ps
 
 start_ps, dir+'stokes_ext.eps'
 for ob=0,2 do begin
-print, ob
 
  cgdisplay, wid=1, xsize=1200, ysize=1500
  !p.multi=[0,1,2]

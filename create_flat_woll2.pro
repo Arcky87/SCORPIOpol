@@ -57,7 +57,6 @@ for k=0,Npol-1 do begin
   flat(*,j,k)=flat(*,j,k)/norm_X(*,k)
  endfor
 endfor
-stop, 'Flat normalized!'
 ;
 ;;;нормировка по Y
 ; wx=200  & wy=10  & norm_Y=fltarr(Npol)
