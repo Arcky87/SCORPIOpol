@@ -24,7 +24,7 @@ FUNCTION make_bins_idl, wavs
   edges[0] = wavs[0] - (wavs[1] - wavs[0]) / 2.0
   edges[n] = wavs[n-1] + (wavs[n-1] - wavs[n-2]) / 2.0
 
-  widths = edges[1:*] - edges[0:N_ELEMENTS(edges)-2]
+  widths = edges[1:*] - edges[0:*-1]
 
   RETURN, {edges:edges, widths:widths}
 END

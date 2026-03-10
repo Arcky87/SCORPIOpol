@@ -41,7 +41,7 @@ geometry_coeff=fltarr(1000,4,4)
 angle=' for   polarization angle = '+['0 deg','90 deg','45 deg','135 deg']
 print,'D_y=',D_y
 for k=0,3 do begin
-geometry_WOLL2,cube(*,*,k),tra(*,*,k),X0,Y0,X1,Y1,plot=key1(2),eps=35,scale=4,tresh=2,TITLE=angle(k),Dy=D_y ;default sc=4, thresh=1, no eps keyword IY
+geometry_WOLL2,cube(*,*,k),tra(*,*,k),X0,Y0,X1,Y1,plot=key1(2),eps=19,scale=4,tresh=2,TITLE=angle(k),Dy=10 ;default sc=4, thresh=1, no eps keyword IY
 Nc=N_elements(X0)
 coords=[X0,Y0,X1,Y1]
 
@@ -82,6 +82,10 @@ cube_flat=readfits(wdir+'flat_i.fts',h_flat)
  Npol=sxpar(h_obj,'NAXIS3')
  Nexp=sxpar(h_obj,'NAXIS4')
  Ncub=sxpar(h_obj,'NAXIS5')
+ ;IY dealing with trim edges
+ trim_edge = [20, 20]
+ Nx = Nx - trim_edge[0] - trim_edge[1]
+
  eta_corr=fltarr(Nx,H_slit,Npol)
 neon_corr=fltarr(Nx,H_slit,Npol)
 flat_corr=fltarr(Nx,H_slit,Npol)
@@ -111,15 +115,15 @@ xpk=xpk
 Yc=xpk(1)
 print,'Yc=',Yc
 print,'h_SLIT', H_SLIT
-neon_corr(*,*,k)=correction_image(cube_neon(*,*,k),C,Yc=xpk(1),Hslit=H_slit,plot=key1(3),TITLE='neon '+angle(k)) & WAIT,key1(3)
-flat_corr(*,*,k)=correction_image(cube_flat(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='flat '+angle(k)) & WAIT,key1(3)
-eta_corr(*,*,k)=correction_image(cube_eta(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='eta '+angle(k))  & WAIT,key1(3)
+neon_corr(*,*,k)=correction_image(cube_neon(*,*,k),C,Yc=xpk(1),Hslit=H_slit,plot=key1(3),TITLE='neon '+angle(k),trim_edge=trim_edge) & WAIT,key1(3)
+flat_corr(*,*,k)=correction_image(cube_flat(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='flat '+angle(k),trim_edge=trim_edge) & WAIT,key1(3)
+eta_corr(*,*,k)=correction_image(cube_eta(*,*,k),C,Yc=xpk(1),Hslit=h_slit,plot=key1(3),TITLE='eta '+angle(k),trim_edge=trim_edge)  & WAIT,key1(3)
 ;exposure
  for j=0,Ncub-1 do begin
  for i=0,Nexp-1 do begin
  if total(cube_obj(*,*,k,i,j)) ne 0 then begin
 ; if k eq 0 then cube_obj(*,*,k,i,j)=remove_bad_row(cube_obj(*,*,k,i,j),[66,67])
- obj_corr(*,*,k,i,j)=correction_image(cube_obj(*,*,k,i,j),C,Yc=xpk(1),Hslit=H_slit,plot=key1(3),TITLE='obj '+angle(k)+' exp='+string(i+1,format='(I2)')+'  cube='+string(j+1,format='(I2)') )
+ obj_corr(*,*,k,i,j)=correction_image(cube_obj(*,*,k,i,j),C,Yc=xpk(1),Hslit=H_slit,plot=key1(3),TITLE='obj '+angle(k)+' exp='+string(i+1,format='(I2)')+'  cube='+string(j+1,format='(I2)'),trim_edge=trim_edge )
    WAIT,key1(3)
 print,angle(k),name_target(j),'   exposure',i
     endif
@@ -131,6 +135,10 @@ ENDFOR
 ;b=size(eta) & Nx=a(1) & Ny=a(2)
 ;Window,2,xsize=Nx/2,ysize=Ny+Hslit,TITLE=title
 
+sxaddpar, h_eta,  'NAXIS1', Nx
+sxaddpar, h_neon, 'NAXIS1', Nx
+sxaddpar, h_flat, 'NAXIS1', Nx
+sxaddpar, h_obj,  'NAXIS1', Nx
 
 writefits,wdir+'eta.fts',eta_corr,h_eta
 writefits,wdir+'neon.fts',neon_corr,h_neon
@@ -178,14 +186,35 @@ endif
   tmp=0 & for j=0,Ndeg do tmp=tmp+D(j,k)*findgen(Nx)^j
   wave(*,k)=tmp
   endfor
-  beg_lambda=FIX(max(wave(0,*))/10+1)*10
-  end_lambda=FIX(min(wave(Nx-1,*))/10)*10
+  ;beg_lambda=FIX(max(wave(0,*))/10+1)*10
+  ;end_lambda=FIX(min(wave(Nx-1,*))/10)*10
 
-  robomean,wave-shift(wave,1),3,0.5,avg_dwave
-  ;d_lambda=FIX(avg_dwave*2)*0.5
-  d_lambda=avg_dwave
+  margin_px = 5  ; Запас в пикселях
+  beg_lambda = max(wave(margin_px, *)) 
+  end_lambda = min(wave(Nx-1-margin_px, *))
 
-  N_lin=FIX(end_lambda-beg_lambda)/d_lambda+1
+
+  ; robomean,wave-shift(wave,1),3,0.5,avg_dwave
+  ; ;d_lambda=FIX(avg_dwave*2)*0.5
+  ; d_lambda=avg_dwave
+
+; Вместо простого avg_dwave вычисляем медианную дисперсию
+d_lambda_arr = fltarr(Npol, Nx-1)
+
+for k=0,Npol-1 do begin
+  for i=0,Nx-2 do begin
+    d_lambda_arr(k, i) = wave(i+1, k) - wave(i, k)
+  endfor
+endfor
+; Используем медиану для устойчивости к выбросам
+;robomean, d_lambda_arr, 3, 0.5, avg_dwave, rms_dwave
+;d_lambda = avg_dwave
+
+
+; Или используем минимальную дисперсию для сохранения информации
+ d_lambda = min(d_lambda_arr)
+
+   N_lin=FIX(end_lambda-beg_lambda)/d_lambda+1
   mkhdr,h,disp
     sxaddpar,h,'NAXIS1',Ny,' LENGTH OF SLIT, px'
   sxaddpar,h,'NAXIS2',Ndeg+1,' DEGREE OF POLYNOM + 1'
@@ -200,7 +229,7 @@ endif
   ;
     WIDGET_CONTROL,beg_wave_W,SET_VALUE=string(beg_lambda,format='(I4)')
   WIDGET_CONTROL,end_wave_W,SET_VALUE=string(end_lambda,format='(I4)')
-  WIDGET_CONTROL,d_wave_W,SET_VALUE=string(d_lambda,format='(F3.1)')
+  WIDGET_CONTROL,d_wave_W,SET_VALUE=string(d_lambda,format='(F3.5)')
   disp_2:
     endif
 ;step#5 linerisation
@@ -221,7 +250,6 @@ endif
 
      cube_ini=readfits(wdir+type(k)+'.fts',h,/silent)
   for j=0,Npol-1 do begin
-
   ima=linerisation_WOLL2(cube_ini(*,*,j),DISP(*,*,j),PARAM=[beg_lambda,d_lambda,Nlin])
 
   robomean,congrid(ima,Nlin,Ny),3,0.5,avg_ima,rms_ima
@@ -259,6 +287,7 @@ endif
   sxaddpar,h,'CDELT1',d_lambda,AFTER='CRVAL1',' DISPERSION, A/px'
   writefits,wdir+'obj_lin.fts',cube_lin,h
   fin_lin:
+  print,'Linearization complete!'
   endif
 
 ;step#6 N.S. substraction
@@ -268,6 +297,7 @@ endif
     print,'sky_substraction'
     print,'NSdeg',NSdeg,'NScut',NScut
     subsky_WOLL2,wdir,plot=key1(6),/flat,/Yshift;,NSDEG=NSdeg
+    print,'Reduced cube obj-sky.fts is created!'
      endif
 ;step#7 spectra extraction
     if step(7) eq 1 then begin
@@ -492,7 +522,7 @@ PRO WOLL2_Event, Event
 
   WIDGET_CONTROL,beg_wave_W,SET_VALUE=string(beg_lambda,format='(I4)')
   WIDGET_CONTROL,end_wave_W,SET_VALUE=string(end_lambda,format='(I5)')
-  WIDGET_CONTROL,d_wave_W,SET_VALUE=string(d_lambda,format='(F3.1)')
+  WIDGET_CONTROL,d_wave_W,SET_VALUE=string(d_lambda,format='(F4.2)')
      endif
      END ;#5
     'k5':   begin & key1(5)=mod_value(key1(5)) & END
@@ -604,7 +634,7 @@ PRO WOLL2 ; MAIN WIDGETS-INTERFACE
    COMMON STOKS,shift_PA,out_end,out_beg,W_integr,P_ISM,PA_ISM
 ; set init parameters
 ;******************************************************
-   log_dir='/hdd/Glagol/2019/WOLL-2/20191216/'
+   log_dir='/data/Observations/s260307/'
 ;*****************************************************
 background=2^24-1 & color=0
 Y_shi=0  & NSdeg=2 & NScut=3 & atm_lines='6890,7260,7620' & atm_window=300

@@ -12,7 +12,7 @@ x=findgen(Nx)
 Npos=200
 xpos=fltarr(Npos,Ntra) & ypos=fltarr(Npos,Ntra) & Npk=fltarr(Ntra)
 ;*********************
-wy=7  & wx=3 ; ширина пиков 3 2 default
+wy=3  & wx=3 ; ширина пиков 3 2 default
 ;*********************
 SX=972 & SY=140;  SX=1900 & SY=640 mine IY
 if keyword_set(plot) then begin
@@ -29,13 +29,13 @@ for k=0,Ntra-1 do begin
  ;vector = median(vector, 3) ; эксперименты !!!!!
  ;vector=ALOG10(vector)
  ;Ищем линии на пути каждой траектории, записываем в xpk
- xpk=find_peaks(vector,tresh=2,w=4); can be plotted via /plot ; mine tresh=2, w=4
+ xpk=find_peaks(vector,tresh=2,w=8); can be plotted via /plot ; mine tresh=2, w=4
  ;Отбрасываем пики с краю кадра по значениям wx  
- RR=where(xpk gt wx*2 and xpk lt Nx-1 -2*wx) & xpk=xpk(RR)
+ ;RR=where(xpk gt wx*2 and xpk lt Nx-1 -2*wx) & xpk=xpk(RR)
  Npk(k)=N_elements(xpk)
   ;аппроксимация пиков полиномом для поиска точного положения. В текущей реализации параболой
   for j=0,Npk(k)-1 do begin
-   P=goodpoly(x(xpk(j)-wx:xpk(j)+wx),vector(xpk(j)-wx:xpk(j)+wx),2,2,fit) ; 2,3 ---mine IY
+   P=goodpoly(x(xpk(j)-wx:xpk(j)+wx),vector(xpk(j)-wx:xpk(j)+wx),2,4,fit) ; 2,3 ---mine IY
    xpk(j)=-P(1)/P(2)/2
    ;эксперименты
   ;  peak_val = P(0) - P(1)^2/(4*P(2)) ; Максимум параболы
@@ -79,9 +79,9 @@ xrep=reform(xrep,Ntra,Nline)
 yrep=reform(yrep,Ntra,Nline)
 index=intarr(Nline)
 for k=0,Nline-1 do begin
- f=goodpoly(yrep(*,k),xrep(*,k),1,3,Xfit) ; default 1,3 IY
+ f=goodpoly(yrep(*,k),xrep(*,k),2,5,Xfit) ; default 1,3 IY
  err=stdev(xrep(*,k)-Xfit)
- if err lt 0.75 then begin ;mine 0.75
+ if err lt 2.15 then begin ;mine 0.75
   if keyword_set(plot) then oplot,xrep(*,k),yrep(*,k),color=1e7,psym=6,thick=2
   index(k)=1
   endif

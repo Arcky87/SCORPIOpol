@@ -26,6 +26,7 @@ a=size(xrep) & Nrep=a(2)
 SY=140 & SX=972
 
 if P eq 1 then window,2,xsize=SX,ysize=SY,ypos=620+(SY+40),xpos=0,title='approximation curvature of lines' +titl,retain=2
+
 !P.multi=[0,1,1]
 map=neon
 ;robomean,congrid(map,Nx/10,Ny/10),3,0.5,mean,rms
@@ -39,7 +40,7 @@ endif
 ;построение модели геометрии
 Ndeg=2 ; степень полинома аппроксимаци линий вдоль щели
 ; убираем реперы крайних линий (самую синюю и самую красную) Убрал 
-xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2 ; строка не нужна для woll2 ???
+;xrep=xrep(*,1:Nrep-1) & yrep=yrep(*,1:Nrep-1) & Nrep=Nrep-2 ; строка не нужна для woll2 ???
 print,'Nrep=',Nrep
 ff=fltarr(Ndeg+1,Nrep)
 ;аппроксимируем линии полиномом Ndeg
@@ -61,19 +62,41 @@ fit=0 & for i=0,Ndeg do fit=fit+ff(i,k)*y^i
 line(*,k)=fit
 endfor
 ;добавление линий на краях
-d_tmp=45;
+;d_tmp=45;
+;tmp=fltarr(Ny,Nrep+2)
+;;tmp(*,0)=ap(0,1)*y+ap(0,2)*y^2+d_tmp  ; original, works well
+;tmp(*,0) = line(*,0) - (min(line(*,0)) - 5)
+;tmp(*,Nrep+1)=line(*,Nrep-1)+(Nx-5-max(line(*,Nrep-1)))
+;tmp(*,1:Nrep)=line(*,*)
+;line=tmp & Nlin=Nrep+2
+;добавление линий на краях путем экстраполяции
+left_coeffs = fltarr(Ndeg+1)
+right_coeffs = fltarr(Ndeg+1)
+
+for i=0,Ndeg do begin
+  coeff_trend = goodpoly(ff(0,*), ff(i,*), 1, 2)
+  left_coeffs(i) = coeff_trend[0] + coeff_trend[1] * 5.0
+  right_coeffs(i) = coeff_trend[0] + coeff_trend[1] * (Nx-5.0)
+endfor
+  line_left = 0.0
+  line_right = 0.0
+  for i=0,Ndeg do begin
+    line_left = line_left + left_coeffs(i) * y^i
+    line_right = line_right + right_coeffs(i) * y^i
+endfor
 tmp=fltarr(Ny,Nrep+2)
-tmp(*,0)=ap(0,1)*y+ap(0,2)*y^2+d_tmp
-tmp(*,Nrep+1)=line(*,Nrep-1)+(Nx-5-max(line(*,Nrep-1)))
-tmp(*,1:Nrep)=line(*,*)
+tmp(*,0) = line_left
+tmp(*,Nrep+1) = line_right
+tmp(*,1:Nrep) = line(*,*)
 line=tmp & Nlin=Nrep+2
+
 ;for k=0,Nlin-1 do oplot,line(*,k),y,color=3e6
 ; Исходные линии 
 ;for k=1,Nlin-1 do oplot,line(*,k),y,color=3e6 ; 
 ; Левая граница - красный
-;oplot,line(*,0),y,color=255,thick=2 
+oplot,line(*,0),y,linestyle=2,color=3e6
 ; Правая граница - синий  
-;oplot,line(*,Nlin-1),y,color=255,thick=2
+oplot,line(*,Nlin-1),y,linestyle=2,color=3e6
 ;двумерная аппроксимация траекторий
 coeff_tra=fltarr(3,Ntra) & x=findgen(Nx)
 for i=0,Ntra-1 do begin
@@ -87,15 +110,15 @@ high(i)=ff(0)+ff(1)*(tra(Nx/2,Ntra-1)+dy)
 endfor
 tra_low=0 & for i=0,2 do tra_low=tra_low+low(i)*x^i
 tra_high=0 & for i=0,2 do tra_high=tra_high+high(i)*x^i
-;oplot,x,tra_low,linestyle=2,color=3e6
-;oplot,x,tra_high,linestyle=2,color=3e6
+oplot,x,tra_low,linestyle=2,color=3e6
+oplot,x,tra_high,linestyle=2,color=3e6
 tmp=fltarr(Nx,Ntra+2)
 tmp(*,0)=tra_low
 tmp(*,1:Ntra)=tra
 tmp(*,Ntra+1)=tra_high
 tra=tmp & Ntra=Ntra+2
 ;экстраполяция траекторий и линий за края формата
-ext=70  ;50  - 2x1
+ext=50  ;50  - 2x1
 xx=findgen(Nx+2*ext)-ext  ; увеличиваем область вдоль дисперсии
 yy=findgen(Ny+2*ext)-ext ; увеличиваем область вдоль щели
 line_ext=fltarr(Ny+2*ext,Nlin) ; подготавливаем увеличенные массивы для линий

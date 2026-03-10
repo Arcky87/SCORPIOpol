@@ -5,7 +5,6 @@ if not(keyword_set(NScut)) then  NScut=3
 
 cube=readfits(dir+'obj_lin.fts',h,/silent)
 bin=sxpar(h,'BINNING') & bin=str_sep(bin,'x') & bin=FLOAT(bin(1)) & print,'bin',bin
-co=1.5
 a=size(cube)
 Nx=a(1) & Ny=a(2) & Npol=a(3) & Nmax=a(4)  & Ncube=a(5)
 Nexp=fltarr(Ncube)
@@ -14,7 +13,8 @@ for k=0,Ncube-1 do Nexp(k)=sxpar(h,'NUMEXP'+string(k+1,format='(I1)'))
 map=fltarr(Nx,Ny)
 ;исправление плоского поля и инструментальной поляризации решетки
 if keyword_SET(flat) then begin
-avg_flat=readfits(dir+'avg_flat.fts',/silent)
+;avg_flat=readfits(dir+'avg_flat.fts',/silent)
+avg_flat=readfits(dir+'norm_flat.fts',/silent) ; если нужно исправить только локальные неоднородности, иначе используй avg_flat
 avg_ratio=readfits(dir+'avg_ratio.fts',/silent)
 for j=0,Ncube-1 do begin
 for i=0,Nexp(j)-1 do begin
@@ -28,6 +28,7 @@ titl=['object','unpolarized star','polarized star']
 
 ;writefits,dir+'cube-flat.fts',cube,h
 
+co=1.5
 p=0
 if keyword_set(plot) then p=1
  for j=0,Ncube-1 do begin
@@ -41,9 +42,9 @@ robomean,cube(*,*,*,i,j),3,0.5,avg_map,rms_map
 for k=0,Npol-1  do begin
 map=cube(*,*,k,i,j)
 ;определение области проведения ночного неба
-V=total(map(Nx/2-w:Nx/2+w,*),1)
-robomean,V,NScut,0.5,avg_V,rms_V
-R=where(V lt avg_V+3*rms_V)   ;!!!! 3
+V=total(map(Nx/2-w:Nx/2+w,*),1) ; узкая вертикальная полоса вдоль щели шириной 2w
+robomean,V,NScut,0.5,avg_V,rms_V ; робастное среднее 
+R=where(V lt avg_V+3*rms_V,coun)   ;!!!! 3
 if p eq 1 then tv,255-bytscl(congrid(map,a(1),a(2)*co),avg_map-rms_map,avg_map+5*rms_map),100,(a(2)+1)*k*co
 if p eq 1 then begin
 ;plot,V,y,position=[0,(a(2)*bin/4.0+1)*k*co,100,(a(2)*bin/4.0+1)*(k+1)*co],/device,/noerase,color=2^16-1,xcharsize=1e-5
@@ -52,16 +53,20 @@ oplot,V(R),y(R),psym=6,symsize=0.25,color=1e5
 endif
 for x=0,Nx-1 do begin
 f=goodpoly(y(R),map(x,R),NSdeg,1,Yfit)
- if k+i+j eq 0 then begin
-  if (x gt 1500 and x lt 1550) then print, 'coef', f
- endif
+  ; if k+i+j eq 0 then begin
+  ;  if (x gt 1500 and x lt 1550) then print, 'coef at x=',x, ': ', f
+  ; endif
 sky=0 & for s=0,NSdeg do sky=sky+f(s)*y^s
+
+; if f(2) ge 0 then begin
+; !p.multi=0
+; cgplot, map(x,*);,yrange=[-10,100]
+; cgoplot, sky,color='red',psym=2
+; endif
+
 map(x,*)=map(x,*)-sky
 cube(x,*,k,i,j)=map(x,*)
 endfor
-
-
-
 
 ;if p eq 1 then tv,255-bytscl(congrid(map,a(1)/4,a(2)*co),-rms_map,5*rms_map),100+a(1)/4,(a(2)+1)*bin/4.0*k*co
 if p eq 1 then tv,255-bytscl(congrid(map,a(1),a(2)*co),-rms_map,5*rms_map),100+a(1),(a(2)+1)*k*co ELSE $
@@ -83,7 +88,7 @@ for p=0,Npol-1 do begin
 ;ma=obj_cube(*,*,p,e,t)
 cube(*,*,p,e,t)=corr_tra(cube(*,*,p,e,t),Ndeg=1,win=200)
 cube(*,*,p,e,t)=corr_tra(cube(*,*,p,e,t),/plot,Ndeg=2,win=200)
-wait,0.1
+wait,1.0
 endfor
  endfor
   endfor

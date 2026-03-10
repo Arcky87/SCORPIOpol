@@ -284,6 +284,10 @@ function goodpoly,x,y,order,thresh,yfit,newx,newy,newerr, $
    yfit = poly(x,coeff)
    if savebad then bad = 1B - gflag
 
-   return,trimrank(coeff)
+   snr = mean/sigma ; IY
+
+   return,trimrank(coeff) 
+   print,'   Final pass  S/N=',snr,' and  ',nbad,' points removed',$ ;IY
+   format='(a,f6.1,a,f6.1,a,i3,a)' ; IY
 
 end

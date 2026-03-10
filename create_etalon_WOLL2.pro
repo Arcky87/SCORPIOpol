@@ -7,12 +7,12 @@ pro create_etalon_WOLL2,dir
 
 ;dir=def_wdir(LOGFILE)
 ;goto,cont
-;формирование еталонного спектра неона, гамма-коррекция и вычитание фона
+;пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 cube=readfits(dir+'neon.fts',h)
 a=size(cube) & Nx=a(1)  & Ns=a(3)
 spectra=fltarr(Nx,Ns)
 x=findgen(Nx)
-G=0.5 ; гамма-коррекция, влияет на интенсивность линий
+G=0.4 ; пїЅпїЅпїЅпїЅпїЅ-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 for j=0,Ns-1 do begin
 spectra(*,j)=total(cube(*,*,j),2)
 R=where(spectra(*,j) lt 1,ind1) & if ind1 gt 1 then spectra(R,j)=1
@@ -62,21 +62,27 @@ w_out=w_out(1:N-1)
 N=N-1
 x=findgen(Nx)
 Ndeg=3
-f=goodpoly(x_out,w_out,Ndeg,3); робастная кубическая интерполяция пикселей по фиксированным длинам волн
-wav=0 & for j=0,Ndeg do wav=wav+f(j)*x^j ; получение дисперсионной кривой
+f=goodpoly(x_out,w_out,Ndeg,3); пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
+wav=0 & for j=0,Ndeg do wav=wav+f(j)*x^j ; пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ
 wav_min=10*fix(wav(0)/10) & wav_max=10*fix(wav(Nx-1)/10)   ;comment - rfix?!
 disp=fix((wav(Nx/2+1)-wav(Nx/2))/0.1)*0.1 & order=1
-print,disp,wav_min,wav_max
+;print,disp,wav_min,wav_max
 
 xpos=fltarr(5,N) & xpos(0,*)=w_out  & xpos(1,*)=x_out
 
 
 print,xpos
-eps=75
+eps=20
 for k=0,N-1 do begin
 for j=0,Ns-1 do begin
-max_value=max(spectra(xpos(1,k)-eps:xpos(1,k)+eps,j),Nmax)
-xpos(1+j,k)=xpos(1,k)-eps+Nmax
+start_pix = round(xpos(1,k)) - eps
+end_pix = round(xpos(1,k)) + eps
+if start_pix lt 0 then start_pix = 0
+if end_pix ge Nx then end_pix = Nx - 1
+max_value=max(spectra(start_pix:end_pix,j),Nmax)
+;max_value=max(spectra(xpos(1,k)-eps:xpos(1,k)+eps,j),Nmax)
+xpos(1+j,k)=start_pix+Nmax
+;xpos(1+j,k)=xpos(1,k)-eps+Nmax
 endfor
 print,xpos(*,k)
 endfor
@@ -88,9 +94,9 @@ for k=0,N-1 do begin
 oplot,[1,1]*xpos(1+j,k),[0,1e6],linestyle=1
 endfor
 endfor
-;запись эталонных спектров
+;пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 writefits,dir+'etalon.fit',spectra,h
-;запись списка отождествленных линий
+;пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ
 openw,1,dir+'etalon.txt'
 printf,1,disp,wav_min,wav_max,0,0,format='(F7.2,4I6)'
 for j=0,N-1 do printf,1,xpos(*,j),format='(F7.2,4I6)'

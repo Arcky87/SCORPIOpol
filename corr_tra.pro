@@ -15,7 +15,12 @@ Vy=median(Vy,10)  ;чистка частиц
 max_value=max(Vy,Nmax) & w=3
 
 ;Nmax=Ny/2
-f=goodpoly(y(Nmax-10:Nmax+10),Vy(Nmax-10:Nmax+10),2,3)
+start_fit = Nmax - 10
+end_fit = Nmax + 10
+if start_fit lt 0 then start_fit = 0
+if end_fit ge Ny then end_fit = Ny - 1
+f=goodpoly(y(start_fit:end_fit),Vy(start_fit:end_fit),2,3)
+;f=goodpoly(y(Nmax-10:Nmax+10),Vy(Nmax-10:Nmax+10),2,3)
 ypos(k)=-f(1)/f(2)/2
 ;print,xpos(k),Nmax,ypos(k)
 endfor

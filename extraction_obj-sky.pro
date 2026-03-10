@@ -8,14 +8,12 @@ for k=0,a(1)-1 do begin
  V(*)=ima(k,*) & Vy=congrid(V,a(2)*S)
  yc=tra(k)*S
 ;	print,yc-wy,yc+wy,n_elements(Vy)
- vector(k)=total(Vy(yc-wy:yc+wy))
+ vector(k)=total(Vy(yc-wy*S:yc+wy*S)) / S
 endfor
 return,vector
-
 end
 
-
-dir='/hdd/Glagol/2019/WOLL-2/20191216/HD18078/'
+dir='/data/Observations/s260307/HD154892/'
 cube=readfits(dir+'obj-sky.fts',h)
 biny=2.0
 apert=[5.0,5.0,5.0];in arcsec [5.0,5.0,5.0]
@@ -23,7 +21,7 @@ a=size(cube)
 Nx=a(1) & Ny=a(2) & Npol=a(3) & Ncub=a(5)
 Nexp=[sxpar(h,'NUMEXP1'),sxpar(h,'NUMEXP2'),sxpar(h,'NUMEXP3')]
 lam=indgen(Nx)*sxpar(h,'CDELT1')+sxpar(h,'CRVAL1')
-lam_st=5590 & lam_fin=7770
+lam_st=4300 & lam_fin=6300
 names=[sxpar(h,'NAME1'),sxpar(h,'NAME2'),sxpar(h,'NAME3')]
 z=0.0
 ;emlines=[4861,4341]
@@ -32,7 +30,7 @@ objpos=[Ny/2,Ny/2,Ny/2]
 
 ; построение траекторий
 x=findgen(Nx) & wx=50
-y=findgen(Ny) & wy=25/biny  ;2x1:  50;25  ;100 - когда далеко от центра кадра
+y=findgen(Ny) & wy=70/biny  ;2x1:  50;25  ;100 - когда далеко от центра кадра
 avg_spectra=fltarr(Nx,Npol,Ncub)
 
 sp=fltarr(Nx,Npol,Nexp(0),Ncub)
@@ -57,11 +55,10 @@ FOR C=0,Ncub-1 do begin;Ncub-1 DO BEGIN
   endfor
 
  tra=fltarr(Nx,i,j)
-
  ;вычисляем траекторию спектра квадратным полиномом
   for j=0,Nexp(c)-1 do begin
   for i=0,Npol-1 do begin
-   f=goodpoly(xpos,ypos(*,i,j),2,2)
+   f=goodpoly(xpos,ypos(*,i,j),2,3)
    tra(*,i,j)=f(0)+f(1)*x+f(2)*x^2;+f(3)*x^3
   endfor
  endfor
@@ -81,7 +78,7 @@ FOR C=0,Ncub-1 do begin;Ncub-1 DO BEGIN
  endfor
 
  ;экстракция спектров
- sc=1.05 ;масштаб ?
+ sc=1 ; оверсемплинг провиля поперек щели. Для субпиксельной точности
  V=fltarr(Ny)
  spectra=fltarr(Nx,Npol,Nexp(c))
 
@@ -96,20 +93,21 @@ FOR C=0,Ncub-1 do begin;Ncub-1 DO BEGIN
  cgplot,slice
   ;lorentz апроксимируем разрез профилем Лоренца
   lp=40/biny 
-  res=mpfitpeak(indgen(Ny),slice,a,/lorentz) & wait, 0.5
+  res=mpfitpeak(indgen(Ny),slice,a,/lorentzian) & wait, 0.3
 ;		res=mpfitpeak(indgen(2*lp+1),slice(Ny/2-lp:Ny/2+lp-1),a,/lorentz) ;& wait, 2
-  cgoplot,indgen(2*lp+1)+Ny/2-lp,res, color='grn6'
-  cgoplot,[a(1)-a(2),a(1)+a(2),a(1)],[a(0)/2.0+a(3),a(0)/2.0+a(3),a(0)+a(3)]
-  cgoplot,[a(1)-a(2),a(1)+a(2)],[a(3),a(3)]
-  cgoplot,[a(1)-apert(c)/(0.1785*biny),a(1)-apert(c)/(0.1785*biny)],[-1e4,1e4],thick=2,color='gold'
-  cgoplot,[a(1)+apert(c)/(0.1785*biny),a(1)+apert(c)/(0.1785*biny)],[-1e4,1e4],thick=2,color='gold'
+  cgplot,res, color='grn6'
+  cgoplot,[a(1)-a(2),a(1)+a(2)],[a(0)/2.0+a(3),a(0)/2.0+a(3)]
+  cgoplot,[a(1)-apert(c)/(0.1785*biny),a(1)-apert(c)/(0.1785*biny)],[0,1e4],thick=2,color='gold'
+  cgoplot,[a(1)+apert(c)/(0.1785*biny),a(1)+apert(c)/(0.1785*biny)],[0,1e4],thick=2,color='gold'
+  cgoplot,[a(1)+4*a(2),a(1)+4*a(2)],[0,1e4],thick=2,color='Green'
+  cgoplot,[a(1)-4*a(2),a(1)-4*a(2)],[0,1e4],thick=2,color='Green'
   print, 'Optimal aperture: ', 9*a(2)
   wait,1
 
-
  for j=0,Nexp(c)-1 do begin
   for i=0,Npol-1 do begin
-   ww=apert(c)/(0.1785*biny) & dt=0
+ ;  ww=apert(c)/(0.1785*biny) & dt=0
+   ww=4*a(2) &dt=0
    spectra(*,i,j)=extraction(cube(*,*,i,j,(c)),tra(*,i,j)+dt,wy=ww,S=sc) ;5*a(2)
 ;				if c eq 0 then begin
 ;					ww=8.6/0.1785 & dt=14.1/0.1785
@@ -122,35 +120,35 @@ FOR C=0,Ncub-1 do begin;Ncub-1 DO BEGIN
   endfor
  endfor
 
- sp(*,*,0:Nexp(c)-1,c)=spectra(*,*,*)
+ sp(*,*,0:Nexp(c)-1,c)=spectra(*,*,*) ; sp --- общий масив-контейнер по всем экспозициям
+
+;  for j=0,Npol-1 do begin
+;   for kx=0,Nx-1 do begin
+;    avg_spectra(kx,j,c)=median(spectra(kx,j,*)) ; медианный спектр
+;   endfor
+;  endfor
 
  for j=0,Npol-1 do begin
   for kx=0,Nx-1 do begin
-   avg_spectra(kx,j,c)=median(spectra(kx,j,*))
-  endfor
- endfor
-
- for j=0,Npol-1 do begin
-  for kx=30,Nx-5 do begin
-   robomean,spectra(kx,j,*),1,0.5,avs
-;			avs=total(spectra(kx,j,*))/N_elements(spectra(kx,j,*))
-   avs=median(spectra(kx,j,*))
+   ;robomean,spectra(kx,j,*),5,0.5,avs
+   avs=total(spectra(kx,j,*))/N_elements(spectra(kx,j,*))
+ ;  avs=median(spectra(kx,j,*))
    avg_spectra(kx,j,c)=avs
   endfor
  endfor
 
- window,0,xsize=800,ysize=800
+ ;window,0,xsize=800,ysize=800
+ cgDisplay, 800, 800
  !P.multi=[0,1,1]
  for j=0,Npol-1 do begin
-  plot,avg_spectra(*,j,c),xst=1,/ylog,yrange=[5e3,5e4],/noerase
+  cgplot,avg_spectra(*,j,c),xst=1,/ylog,/noerase; yrange=[5e3,5e4]
 
-   for k=0,Nexp(c)-1 do oplot,spectra(*,j,k),color=3e5
-  ;oplot,avg_spectra(*,j,c),thick=2
+   for k=0,Nexp(c)-1 do cgoplot,spectra(*,j,k),color='Black'
+  cgoplot,avg_spectra(*,j,c),thick=2
  endfor
 
-
  ;деполяризация
- x0=700 & M=128
+ x0=4000 & M=50
  avg_ratio=fltarr(2,Nexp(c))
  rms_ratio=fltarr(2,Nexp(c))
 
@@ -166,8 +164,9 @@ FOR C=0,Ncub-1 do begin;Ncub-1 DO BEGIN
   avg_ratio(1,k)=mean & rms_ratio(1,k)=rms
  endfor
 
+
  for j=0,1 do begin
-  robomean,avg_ratio(j,*),3,0.5,mean ;& print, 'mean avg_ratio ', mean
+  robomean,avg_ratio(j,*),3,0.5,mean & print,mean
   avg_ratio(j,*)=avg_ratio(j,*)/mean
   rms_ratio(j,*)=rms_ratio(j,*)/mean
   plot,num,avg_ratio(j,*) ,psym=6,yrange=[0.95,1.05],yst=1,xrange=[0,Nexp(c)+1],xst=1
@@ -182,7 +181,6 @@ writefits,dir+'avg_spectra.fit',avg_spectra,h
 ;writefits,dir+'avg_spectra_host.fit',avg_spectra,h
 
 
-
 plot_spectra:
 ;расчет параметров Стокса
 Q=fltarr(Nx,3) & U=Q & F=Q & V=Q
@@ -193,8 +191,8 @@ for c=0,2 do begin
  Q(*,c)=(avg_spectra(*,0,c)-shift_s(avg_spectra(*,1,c),dy))/(avg_spectra(*,0,c)+shift_s(avg_spectra(*,1,c),dy))*100
  dy=0
  U(*,c)=(avg_spectra(*,2,c)-shift_s(avg_spectra(*,3,c),dy))/(avg_spectra(*,2,c)+shift_s(avg_spectra(*,3,c),dy))*100
- V(*,c)=(0.5*((avg_spectra(*,2,c)-avg_spectra(*,3,c))/(avg_spectra(*,2,c)+avg_spectra(*,3,c)))   $
-       -0.5*((avg_spectra(*,0,c)-avg_spectra(*,1,c))/(avg_spectra(*,1,c)+avg_spectra(*,0,c))))*100
+ V(*,c)=(0.5*((avg_spectra(*,0,c)-avg_spectra(*,1,c))/(avg_spectra(*,0,c)+avg_spectra(*,1,c)))   $
+       -0.5*((avg_spectra(*,2,c)-avg_spectra(*,3,c))/(avg_spectra(*,2,c)+avg_spectra(*,3,c))))*100
 endfor
 ;U=shift(U,2,0)
 ;Q_0=LOWESS(findgen(Nx),Q(*,1),Nx/2,2,2)
@@ -209,17 +207,6 @@ for c=0,2 do begin
  FI(*,c)=calc_atan(Q(*,c),u(*,c))
  R=where(FI(*,c) gt 180,ind) & if ind gt 1 then FI(R,c)=FI(R,c)-360
 endfor
-
-start_ps, dir+'wavecal.eps'
-!p.multi=[0,1,2]
-cgdisplay, wid=1, xsize=1200, ysize=1500
-cgplot, lam, avg_spectra(*,0,0),xrange=[6555,6570], ytitle='ADU, counts', title=names(0)+' BTA+SCORPIO-2'
-cgoplot, lam,avg_spectra(*,1,0),color='red'
-cgoplot, lam,avg_spectra(*,2,0),color='green'
-cgoplot, lam,avg_spectra(*,3,0),color='blue'
-;cgplot, lam, ,$
-stop_ps
-
 
 start_ps, dir+'stokes_ext.eps'
 for ob=0,2 do begin

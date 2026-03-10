@@ -7,10 +7,12 @@ grating='grating '+sxpar(h,'DISPERSE')
 a=size(flat) & Nx=a(1)  & Ny=a(2)  & Npol=a(3)
 
 avg_flat=flat     ;create array - average flat
+flat_master=flat ; normalized flat
 map=fltarr(Nx,Ny)   ; ?
 norm_X=fltarr(Nx,Npol)  ;X normalization
 x=findgen(Nx) & y=findgen(Ny)
 ratio=fltarr(Nx,Ny,2)
+
 
 ;;+++++++++++++++++++++++++++++++
 ;N=Npol
@@ -44,25 +46,26 @@ ratio(*,*,0)=flat(*,*,1)/flat(*,*,0) & ratio(*,*,1)=flat(*,*,3)/flat(*,*,2)
 ;w=5
 w = FIX(Ny*0.05) > 3  ; 5% от высоты, но не менее 3
 ;norm_X=total(total(flat,3),2)/Npol/Ny
-cgdisplay, wid=10
+cgdisplay, wid=10,xsize=650,ysize=600,title=grating + ' ' + 'normalized flat field'
 !p.multi=[0,1,4]
 ;ysmoo = fltarr(Nx)
 for k=0,Npol-1 do begin
  norm_X(*,k)=total(flat(*,Ny/2-w:Ny/2+w,k),2)/(2*w+1)
- cgplot,norm_X(*,k),color='blue'
- ;lowess,indgen(Nx),norm_X(*,k),Nx/80,ysmoo,order=2  ;!!! 60
- ;norm_X(*,k) = ysmoo
- cgoplot,norm_X(*,k)
+;  lowess,indgen(Nx),norm_X(*,k),Nx/20,ysmoo,order=3  ;!!! 60
+;  norm_X(*,k) = ysmoo
+;  cgoplot,norm_X(*,k)
  for j=0,Ny-1 do begin
-  flat(*,j,k)=flat(*,j,k)/norm_X(*,k)
+  flat_master(*,j,k)=flat(*,j,k)/norm_X(*,k)
  endfor
+ cgImage,(congrid(flat_master(*,*,k),650,150)), minvalue=0.1, XRange=[0,Nx], YRange=[0.5,1.5]
+ cgoplot,total(flat_master(*,Ny/2-w:Ny/2+w,k),2)/(2*w+1),color='blue'
 endfor
 ;
 ;;;нормировка по Y
 ; wx=200  & wy=10  & norm_Y=fltarr(Npol)
 ;for k=0,Npol-1 do norm_Y(k)=total(flat(Nx/2-wx:Nx/2+wx,Ny/2-wy:Ny/2+wy,k))/(2*wx+1)/(2*wy+1)
 ;;print,norm_Y
-rat='ratio '+['  90/0','135/45']
+
 ;;;
 ;		for k=0,Npol-1 do begin
 ;	flat(*,*,k)=flat(*,*,k)/norm_Y(k)
@@ -88,39 +91,31 @@ rat='ratio '+['  90/0','135/45']
 
 
 if keyword_set(plot) then begin
-cgdisplay,wid=0,xsize=650,ysize=900,title=dir+'  '+grating
+cgdisplay,wid=1,xsize=650,ysize=600,title=dir+'  '+grating
 ang='angle='+['  0',' 90',' 45','135']+' deg'
+rat='ratio '+['  90/0','135/45']
 !p.multi=[0,1,6]
 ;cgplot,[0,Nx],[0,6],/nodata,/norm,xst=1,yst=1
   for k=0,Npol-1 do begin
-   map(*,*)=avg_flat(*,*,k)
+   map(*,*)=avg_flat(*,*,k) ; this is original, but avg_flat procedure is commented out IY
+  ; map(*,*)=flat_master(*,*,k)
    ;map(*,*)=avg_flat(*,*,k)
-   ;cgimage,255-bytscl(congrid(map,650,150),0.5,1.5),0,150*k
-   ;cgplot,[0,Nx],[0,6],/nodata,/norm,xst=1,yst=1
-   cgimage,(congrid(map,650,150)), minvalue=0.2, XRange=[0,Nx], YRange=[0.5,1.5]
+   cgimage,(congrid(map,650,150)), minvalue=0.1, XRange=[0,Nx], YRange=[0.5,40000]
    cgoplot,findgen(Nx),map(*,Ny/2),color='orange'
-   cgoplot,[0,Nx],[1,1]*0.5+ k,linestyle=2;,color=3e5
-   xyouts,240,1.3,ang(k),align=0.5,charsize=2,CHARTHICK=2
+  ; cgoplot,[0,Nx],[1,1]*0.5+ k,linestyle=2;,color=3e5
+   xyouts,840,30000,ang(k),align=0.5,charsize=2,CHARTHICK=2
   endfor
   for j=0,1 do begin
    ;cgplot,[0,Nx],[0,6],/nodata,/norm,xst=1,yst=1
-   cgimage,(congrid(ratio(*,*,j),650,150,1)), minvalue=0.2, XRange=[0,Nx], YRange=[0,2]
+   cgimage,(congrid(ratio(*,*,j),650,150)), minvalue=0.1, XRange=[0,Nx], YRange=[0,2]
    cgoplot,findgen(Nx),ratio(*,Ny/2,j), color='orange'
    ;oplot,[0,Nx],[1,1]*0.5+j+4,linestyle=2,color=3e5
-   xyouts,240,1.7,rat(j),align=0.5,charsize=2,CHARTHICK=2
+   xyouts,840,1.5,rat(j),align=0.5,charsize=2,CHARTHICK=2
   endfor
  endif
 writefits,dir+'tmp_flat.fts',flat,h
 writefits,dir+'avg_flat.fts',avg_flat,h
-writefits,dir+'avg_flat.fts',flat,h
+writefits,dir+'norm_flat.fts',flat_master,h
 writefits,dir+'avg_ratio.fts',ratio,h
 print, 'Flat files created!'
-end
-
-log_dir='/data6/SCORPIO/sppol_pipeline_v2023.8/'
-LOGFILE=DIALOG_PICKFILE(/read,path=log_dir+'LOGS/',FILTER='*.txt')
-wdir=str_sep(sxpar(read_table(LOGFILE),'w_dir'),'/')
-wdir=log_dir+wdir(N_elements(wdir)-2)+'/'
-print,wdir
-create_flat_WOLL2,wdir,/plot
 end

@@ -1,11 +1,11 @@
-objdir='HD18078'
-dir='/hdd/Glagol/2019/WOLL-2/20191216/'+objdir+'/'
+objdir='HD9996'
+dir='/hdd/Glagol/2020/WOLL-2/20200125/'+objdir+'/'
 h=headfits(dir+'avg_spectra.fit')
 Nx=sxpar(h,'NAXIS1')
 lam=indgen(Nx)*sxpar(h,'CDELT1')+sxpar(h,'CRVAL1')
 cdel=sxpar(h,'CDELT1') & crva=sxpar(h,'CRVAL1')
-lam_st=4800 & lam_fin=7800           ;Wavelength range
-lam_st=5590 & lam_fin=7770
+lam_st=4300 & lam_fin=6200           ;Wavelength range
+;lam_st=5590 & lam_fin=7770
 z=0.0 ;0.0255
 ;emlines=[6563,4861,4341]											;Broad lines to oplot //[6563,4861,4341,1549,2798,1909]
 ;narlines=[6550,6585,5007,4959]										;Narrow lines to oplot //[6550,6585,5007,4959]
@@ -33,6 +33,7 @@ cgplot, lam(R),avg_spectra(R,0,stnum)/avg_spectra(R,1,stnum), yrange=[median(avg
  ; Dq=lowess(indgen(ind),avg_spectra(R,0,stnum)/avg_spectra(R,1,stnum),ind/2,2,1)
   Dv1=lowess(indgen(ind),avg_spectra(R,0,stnum)/avg_spectra(R,1,stnum),ind/2,2,1)
   cgoplot,lam(R),Dv1,color='gold',thick=3
+
 cgplot, lam(R),avg_spectra(R,2,stnum)/avg_spectra(R,3,stnum), yrange=[median(avg_spectra(R,2,stnum)/avg_spectra(R,3,stnum))-0.2,median(avg_spectra(R,2,stnum)/avg_spectra(R,3,stnum))+0.2], $
    xrange=[lam_st-10,lam_fin+10]
  ; Du=lowess(indgen(ind),avg_spectra(R,2,stnum)/avg_spectra(R,3,stnum),ind/6,1,1)
@@ -82,13 +83,15 @@ for ob=0,2 do begin
    robomean,avgd(j,*),3,0.5,mean
    avgd(j,*)=avgd(j,*)/median(avgd(j,*))
   endfor
+
+
  ;Calculates Stokes Q and U, or optionally V
  nexp=numexp(ob)
  for ex=0,nexp-1 do begin
  ; q(*,ex,ob)=-(spectra(R,2,ex,ob)-spectra(R,3,ex,ob)*Du*avgd(1,ex)) / (spectra(R,2,ex,ob)+spectra(R,3,ex,ob)*Du*avgd(1,ex))
  ; u(*,ex,ob)=(spectra(R,0,ex,ob)-spectra(R,1,ex,ob)*Dq*avgd(0,ex)) / (spectra(R,0,ex,ob)+spectra(R,1,ex,ob)*Dq*avgd(0,ex))
-  v(*,ex,ob)= 0.5*((spectra(R,2,ex,ob)-spectra(R,3,ex,ob)*Dv2*avgd(1,ex)) / (spectra(R,2,ex,ob)+spectra(R,3,ex,ob)*Dv2*avgd(1,ex))) $ 
-              - 0.5*((spectra(R,0,ex,ob)-spectra(R,1,ex,ob)*Dv1*avgd(0,ex))/(spectra(R,0,ex,ob)+spectra(R,1,ex,ob)*Dv1*avgd(0,ex)))
+  v(*,ex,ob)= 0.5*((spectra(R,0,ex,ob)-spectra(R,1,ex,ob)*Dv1*avgd(0,ex)) / (spectra(R,0,ex,ob)+spectra(R,1,ex,ob)*Dv2*avgd(0,ex))) $ 
+              - 0.5*((spectra(R,2,ex,ob)-spectra(R,3,ex,ob)*Dv1*avgd(1,ex))/(spectra(R,2,ex,ob)+spectra(R,3,ex,ob)*Dv1*avgd(1,ex)))
  endfor
  ;Rotate to celestial plane
  ; qn=q*cos(-2*pa(ob)*!pi/180.0)+u*sin(-2*pa(ob)*!pi/180.0)
